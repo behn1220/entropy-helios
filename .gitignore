@@ -1,0 +1,8 @@
+app/build/
+app/web/words/
+*.o
+*.elf
+*.bin
+*.tmp
+.DS_Store
+Thumbs.db

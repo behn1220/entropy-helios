@@ -1,0 +1,17 @@
+# ENTROPY HELIOS build settings for the M-VAVE FM-1 (MPL-2.0) (fm1-base's tools/build.py: ./build.sh)
+name = "entropy-helios"          # build outputs: entropy-helios-1.0.fwsc, entropy-helios-1.0.html
+id_prefix = "FM-1_88"            # package identity: FM-1_88XXYYZZ
+usb_manufacturer = "ENTROPY AUDIO"
+usb_product = "ENTROPY HELIOS FM-1"
+ble = false
+wifi = false
+usb_audio_in = true              # 44.1 kHz stereo USB audio input (record ENTROPY HELIOS directly over USB)
+usb_audio_out = true             # 44.1 kHz stereo USB audio output (play computer/phone audio through FM-1)
+backup = false
+include = ["../engine", "../engine/dsp"]
+o2 = ["../engine/dsp/helios.c"]  # Dual-Core Entropy Helios DSP compiled at -O2
+words = "words.tsv"
+tagline = "dual-core 8-voice ambient drone synthesizer"
+repo = "https://github.com/behn1220/entropy-helios"
+licence = "MPL-2.0"
+credits = "ENTROPY HELIOS for M-VAVE FM-1. Dual-core 8-voice ambient drone & microtonal synthesizer (MPL-2.0) on fm1-base and felucca-bsp."
