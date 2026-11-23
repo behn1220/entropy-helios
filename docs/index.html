@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en" data-theme="black">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ENTROPY HELIOS — Dual-Core 8-Voice Ambient Drone Synthesizer for M-VAVE FM-1</title>
+<meta name="description" content="Free, open-source dual-core 8-voice ambient drone & microtonal synthesizer firmware for the M-VAVE FM-1. 16 stackable FX cartridges, 5 anodized hardware colorways, 36 presets, and live USB Audio FX.">
+<style>
+:root{
+  --bg:#0d0e11; --surface:#17181d; --surface2:#202229; --border:#353024;
+  --text:#f0ece1; --muted:#9a9382; --accent:#e8b438; --accent2:#4ad6e8;
+  --knob-blue:#2c7ade; --knob-green:#2aac5c; --knob-red:#d4382c; --knob-yellow:#e8b224;
+  --hero-glow:rgba(232,180,56,0.14);
+}
+[data-theme="cream"]{
+  --bg:#dfd9c8; --surface:#ece6d6; --surface2:#e2dbc8; --border:#bfb59e;
+  --text:#1a1a1c; --muted:#5c5548; --accent:#b8421e; --accent2:#1d6fa5;
+  --hero-glow:rgba(184,66,30,0.10);
+}
+[data-theme="amber"]{
+  --bg:#c99618; --surface:#e4b226; --surface2:#d4a01d; --border:#8a640e;
+  --text:#16140e; --muted:#473812; --accent:#8f2414; --accent2:#163f66;
+  --hero-glow:rgba(255,235,140,0.22);
+}
+[data-theme="cobalt"]{
+  --bg:#132a4f; --surface:#1d4278; --surface2:#255191; --border:#4a7bc2;
+  --text:#f2f6fc; --muted:#b2c9eb; --accent:#f5cb4c; --accent2:#6ee7f5;
+  --hero-glow:rgba(110,231,245,0.16);
+}
+[data-theme="olive"]{
+  --bg:#3c3720; --surface:#5c5433; --surface2:#6d643e; --border:#918758;
+  --text:#f5edd2; --muted:#cfc5a2; --accent:#f2b63d; --accent2:#7ce0b2;
+  --hero-glow:rgba(242,182,61,0.15);
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+  line-height:1.55; transition:background .25s ease, color .25s ease;
+}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+.wrap{max-width:1120px; margin:0 auto; padding:0 22px;}
+
+/* Top Nav */
+nav{
+  position:sticky; top:0; z-index:50;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  background:color-mix(in srgb, var(--bg) 84%, transparent);
+  border-bottom:1px solid var(--border);
+}
+.nav-in{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+  gap:12px; padding:12px 0;
+}
+.brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:2px; font-size:15px;}
+.brand-dot{width:11px; height:11px; border-radius:50%; background:var(--accent); box-shadow:0 0 12px var(--accent);}
+.nav-links{display:flex; gap:18px; align-items:center; font-size:13px; font-weight:600;}
+.nav-links a{color:var(--muted); text-decoration:none;}
+.nav-links a:hover{color:var(--text);}
+.swatches{display:flex; gap:7px; align-items:center;}
+.sw-label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-right:4px;}
+.sw{
+  width:20px; height:20px; border-radius:50%; border:2px solid var(--border);
+  cursor:pointer; transition:transform .15s ease, border-color .15s ease;
+}
+.sw:hover{transform:scale(1.14);}
+.sw.active{border-color:var(--text); transform:scale(1.15);}
+.sw-black{background:#18191c;}
+.sw-cream{background:#ebe4d2;}
+.sw-amber{background:#e4b226;}
+.sw-cobalt{background:#285ea8;}
+.sw-olive{background:#6d643e;}
+
+/* Hero */
+.hero{
+  padding:72px 0 56px;
+  background:radial-gradient(ellipse at 50% 0%, var(--hero-glow), transparent 65%);
+  border-bottom:1px solid var(--border);
+}
+.hero-grid{display:grid; grid-template-columns:1.15fr 0.85fr; gap:36px; align-items:center;}
+@media(max-width:860px){.hero-grid{grid-template-columns:1fr;}}
+.pill{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:5px 12px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.8px;
+  background:var(--surface); border:1px solid var(--border); color:var(--accent);
+  text-transform:uppercase; margin-bottom:16px;
+}
+h1{margin:0 0 14px; font-size:clamp(36px,5.2vw,58px); line-height:1.05; letter-spacing:-0.02em;}
+.hero p{margin:0 0 26px; font-size:17px; color:var(--muted); max-width:560px;}
+.cta-row{display:flex; flex-wrap:wrap; gap:12px;}
+.btn{
+  display:inline-flex; align-items:center; gap:8px; padding:12px 20px;
+  border-radius:8px; font-weight:700; font-size:14px; text-decoration:none;
+  border:1px solid var(--border); cursor:pointer; transition:all .15s ease;
+}
+.btn-pri{background:var(--accent); color:#111; border-color:var(--accent);}
+.btn-pri:hover{filter:brightness(1.08); transform:translateY(-1px);}
+.btn-sec{background:var(--surface); color:var(--text);}
+.btn-sec:hover{border-color:var(--accent); color:var(--accent);}
+
+/* Mock Hardware Card in Hero */
+.hw-card{
+  background:var(--surface); border:2px solid var(--border); border-radius:16px;
+  padding:18px; box-shadow:0 24px 60px rgba(0,0,0,0.35);
+}
+.hw-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:12px; font-weight:700; letter-spacing:1px;}
+.hw-glass{
+  background:#070e12; border:1px solid var(--border); border-radius:10px;
+  padding:10px; margin-bottom:16px; position:relative; overflow:hidden;
+}
+#scopeCanvas{width:100%; height:112px; display:block;}
+.knob-row{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; text-align:center;}
+.knob-item span{display:block; font-size:10px; font-weight:700; letter-spacing:.7px; color:var(--muted); margin-bottom:6px;}
+.knob-cap{
+  width:46px; height:46px; margin:0 auto 6px; border-radius:50%;
+  border:5px solid #18181c; box-shadow:0 6px 12px rgba(0,0,0,0.4), inset 0 4px 6px rgba(255,255,255,0.35);
+  position:relative;
+}
+.knob-cap::after{
+  content:""; position:absolute; left:50%; top:4px; width:3px; height:15px;
+  background:#fff; border-radius:2px; transform-origin:bottom center; transform:translateX(-50%) rotate(var(--ang,-35deg));
+}
+.knob-val{
+  background:#0b0e12; color:#f4f4f6; font-size:11px; padding:3px 6px;
+  border-radius:4px; border:1px solid var(--border);
+}
+
+/* Sections */
+section{padding:64px 0; border-bottom:1px solid var(--border);}
+.sec-eyebrow{font-size:12px; font-weight:800; letter-spacing:1.8px; text-transform:uppercase; color:var(--accent); margin-bottom:8px;}
+h2{margin:0 0 12px; font-size:clamp(26px,3.2vw,36px); letter-spacing:-0.01em;}
+.sec-lead{color:var(--muted); max-width:660px; margin:0 0 34px; font-size:16px;}
+
+.grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:18px;}
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px;
+}
+.card h3{margin:0 0 8px; font-size:17px;}
+.card p{margin:0; font-size:14px; color:var(--muted);}
+.tag{
+  display:inline-block; font-size:11px; font-weight:700; padding:2px 8px;
+  border-radius:4px; background:var(--surface2); color:var(--accent);
+  border:1px solid var(--border); margin-bottom:10px;
+}
+
+/* Cart Grid */
+.cart-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(195px,1fr)); gap:10px;}
+.cart-pill{
+  background:var(--surface); border:1px solid var(--border); border-radius:8px;
+  padding:10px 12px; font-size:13px; display:flex; align-items:center; gap:9px;
+}
+.cart-num{
+  width:22px; height:22px; border-radius:5px; background:var(--surface2);
+  color:var(--accent); font-size:11px; font-weight:800; display:grid; place-items:center; flex-shrink:0;
+}
+
+/* Quick Guide Table */
+.table-wrap{overflow-x:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px;}
+table{width:100%; border-collapse:collapse; font-size:13px;}
+th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--border);}
+th{background:var(--surface2); font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--accent);}
+tr:last-child td{border-bottom:none;}
+code{
+  background:var(--surface2); padding:2px 6px; border-radius:4px;
+  font-size:12px; border:1px solid var(--border);
+}
+
+footer{padding:36px 0; text-align:center; font-size:13px; color:var(--muted);}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-in">
+    <div class="brand"><span class="brand-dot"></span> ENTROPY HELIOS</div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#fx">16 Stackable FX</a>
+      <a href="#guide">Quick Guide</a>
+      <a href="#download">Download</a>
+    </div>
+    <div class="swatches" title="Preview all 5 hardware chassis finishes">
+      <span class="sw-label mono">Chassis</span>
+      <button class="sw sw-black active" data-set="black" aria-label="Black"></button>
+      <button class="sw sw-cream" data-set="cream" aria-label="Cream"></button>
+      <button class="sw sw-amber" data-set="amber" aria-label="Amber Yellow"></button>
+      <button class="sw sw-cobalt" data-set="cobalt" aria-label="Cobalt Blue"></button>
+      <button class="sw sw-olive" data-set="olive" aria-label="Olive"></button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="pill mono">Free &amp; Open-Source Firmware • M-VAVE FM-1 • v1.2 Beta</div>
+      <h1>Lush analog drones.<br>Tactile hardware soul.</h1>
+      <p><strong>Entropy Helios</strong> transforms your M-VAVE FM-1 into two instruments in one: <strong>ENTROPY Mode</strong> (generative dual-core ambient engine with 36 mood-grouped presets + 8 user slots) and <strong>PURE HW Mode</strong> (16 blank <code>INIT</code> hardware slots with zero generative interference)—plus 16 stackable FX cartridges, 5 chassis finishes, and live USB Audio FX.</p>
+      <div class="cta-row">
+        <a class="btn btn-pri" href="entropy-helios-1.2.html">Flash FM-1 via Browser (WebMIDI)</a>
+        <a class="btn btn-sec" href="entropy-helios-studio.html">Open WebMIDI Studio</a>
+        <a class="btn btn-sec" href="ENTROPY-HELIOS-MANUAL.md">Full Manual</a>
+      </div>
+    </div>
+
+    <div class="hw-card">
+      <div class="hw-top mono">
+        <span>HELIOS 1.0 // DUAL-CORE</span>
+        <span style="color:var(--accent2)">P01 WARM ANALOG SEA</span>
+      </div>
+      <div class="hw-glass" style="text-align:center;padding:8px;">
+        <img src="entropy-helios-splash.jpg" alt="Entropy Helios CRT Oscilloscope Boot Splash" style="width:100%;max-width:210px;border-radius:10px;display:block;margin:0 auto 8px;border:1px solid var(--border);">
+        <canvas id="scopeCanvas" width="420" height="72"></canvas>
+      </div>
+      <div class="knob-row mono">
+        <div class="knob-item">
+          <span>DRONES</span>
+          <div class="knob-cap" style="background:var(--knob-blue);--ang:-48deg;"></div>
+          <div class="knob-val">30 OSC</div>
+        </div>
+        <div class="knob-item">
+          <span>SEQ / ARP</span>
+          <div class="knob-cap" style="background:var(--knob-green);--ang:-12deg;"></div>
+          <div class="knob-val">2x5 STP</div>
+        </div>
+        <div class="knob-item">
+          <span>DUAL VCF</span>
+          <div class="knob-cap" style="background:var(--knob-red);--ang:22deg;"></div>
+          <div class="knob-val">LP / BP</div>
+        </div>
+        <div class="knob-item">
+          <span>STACK FX</span>
+          <div class="knob-cap" style="background:var(--knob-yellow);--ang:64deg;"></div>
+          <div class="knob-val">16 CART</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-eyebrow mono">Architecture</div>
+    <h2>Built to run across both cores of the FM-1.</h2>
+    <p class="sec-lead">Voices and stereo filters split cleanly across Core 0 and Core 1 in real time, leaving generous headroom for lush reverbs, zero-blip audio, and a 240&times;240 photorealistic hardware UI.</p>
+
+    <div class="grid3">
+      <div class="card">
+        <span class="tag mono">30 + 2 OSCILLATORS</span>
+        <h3>6 Drone Voices + 2 Melodic Voices</h3>
+        <p>Six 5-oscillator swarm drone voices with wave morphing, sub-octaves, and per-voice AR envelopes—paired with two expressive melodic voices, dual 5-step sequencers, and an 8-voice polyphonic play mode.</p>
+      </div>
+      <div class="card">
+        <span class="tag mono">TACTILE HARDWARE UI</span>
+        <h3>5 Anodized Finishes &amp; Zooming Modules</h3>
+        <p>Switch live between Black, Cream, Amber Yellow, Cobalt Blue, and Olive finishes. Press any module button to smoothly expand it across 80% of the screen with giant 3D color-coded knobs.</p>
+      </div>
+      <div class="card">
+        <span class="tag mono">36 PRESETS + 8 USER SLOTS</span>
+        <h3>Mood-Grouped Analog Bliss</h3>
+        <p>20 warm, lush <code>[CALM]</code> presets with automatic Analog Warmth Guard, 8 cinematic <code>[LUSH]</code> presets, 8 experimental <code>[EDGE]</code> presets, plus 8 permanent flash slots that save your chassis finish and stacked FX.</p>
+      </div>
+      <div class="card">
+        <span class="tag mono">EXPRESSIVE CONTROL</span>
+        <h3>Velocity, Poly-Aftertouch &amp; Microtuning</h3>
+        <p>Use the FM-1's 27 capacitive keys as 12 microtonal copper touch plates, a Hybrid split keyboard, or an 8-voice poly synth with 12-TET, Just Intonation, Pythagorean, Bohlen-Pierce, and Maqam tunings.</p>
+      </div>
+      <div class="card">
+        <span class="tag mono">MODULAR DEPTH</span>
+        <h3>8&times;8 CV Pin Matrix &amp; 2D Vector Joystick</h3>
+        <p>Patch dual LFOs (with audio-rate speed switch), S&amp;H, analog slew limiter, envelope follower, key pressure, and an 8-second recordable 2D joystick to any destination.</p>
+      </div>
+      <div class="card">
+        <span class="tag mono">STUDIO READY</span>
+        <h3>Live USB Audio FX &amp; WebMIDI Companion</h3>
+        <p>Route external audio over USB-C directly through the dual analog VCFs, 3-Spring Tank, and 16 stacked FX cartridges. Includes external MIDI Clock sync, Scene A/B morphing, and a browser Patch Librarian.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="fx">
+  <div class="wrap">
+    <div class="sec-eyebrow mono">Multi-Effector Rack</div>
+    <h2>16 Stackable FX Cartridges—with per-cartridge Mix &amp; Tone.</h2>
+    <p class="sec-lead">Load any combination of effects simultaneously on <code>FX &rarr; FX</code>. Every cartridge has its own independent ON/OFF toggle, wet level (<code>CART LVL</code>), and tone/rate (<code>CART TON</code>)—plus a physical-modeled 3-Spring Reverb Tank with piezo kick.</p>
+    <div class="cart-grid mono">
+      <div class="cart-pill"><span class="cart-num">01</span>SHIMMER HALL</div>
+      <div class="cart-pill"><span class="cart-num">02</span>SPACE ECHO</div>
+      <div class="cart-pill"><span class="cart-num">03</span>BLACKHOLE</div>
+      <div class="cart-pill"><span class="cart-num">04</span>GRANULAR</div>
+      <div class="cart-pill"><span class="cart-num">05</span>PHASER+REV</div>
+      <div class="cart-pill"><span class="cart-num">06</span>SUB VOID</div>
+      <div class="cart-pill"><span class="cart-num">07</span>REVERSE TAPE</div>
+      <div class="cart-pill"><span class="cart-num">08</span>RINGMOD HALL</div>
+      <div class="cart-pill"><span class="cart-num">09</span>LO-FI CRUSH</div>
+      <div class="cart-pill"><span class="cart-num">10</span>CHORUS+PITCH</div>
+      <div class="cart-pill"><span class="cart-num">11</span>SPECTRAL RES</div>
+      <div class="cart-pill"><span class="cart-num">12</span>INF FREEZE</div>
+      <div class="cart-pill"><span class="cart-num">13</span>VIBROTREM</div>
+      <div class="cart-pill"><span class="cart-num">14</span>AUTO-WAH</div>
+      <div class="cart-pill"><span class="cart-num">15</span>BELL PITCH</div>
+      <div class="cart-pill"><span class="cart-num">16</span>TAPE WASH</div>
+    </div>
+  </div>
+</section>
+
+<section id="guide">
+  <div class="wrap">
+    <div class="sec-eyebrow mono">Quick Start Guide</div>
+    <h2>Play in 60 seconds.</h2>
+    <p class="sec-lead">Every module button cycles through its pages and exits cleanly back to <code>HOME</code>. Press <code>SEL</code> on any page to access its secondary <code>SEL*</code> knob layer, or press <code>GLO</code> twice for the built-in on-screen Quick Help.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Button</th><th>Pages (Cycles back to HOME)</th><th>Key Shortcuts</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>EDIT</code></td><td>Drone Bank L (V1–V3) &rarr; Drone Bank R (V6–V8) &rarr; 6-Drone Macro</td><td>Turn <code>SELECT</code> to pick voice • <code>SEL*</code> for Wave Morph, Hold, Attack, Pan</td></tr>
+          <tr><td><code>ARP</code></td><td>Melodic V4 &rarr; Melodic V5</td><td><code>SEL + ARP</code> cycles Arpeggiator • <code>SEL*</code> for Level, Attack, Release</td></tr>
+          <tr><td><code>SEQ</code></td><td>5-Step Seq L &rarr; 5-Step Seq R</td><td>Play any key to step-record • <code>SEL*</code> for Length, Probability, Accent</td></tr>
+          <tr><td><code>FX</code></td><td>Dual Analog VCF &rarr; 16-Cart Stack FX</td><td><code>SEL + FX</code> = Spring Piezo Kick • On Carts: <code>K2</code>=ON/OFF, <code>REC</code>=Solo Cart</td></tr>
+          <tr><td><code>ENV</code></td><td>Preamp, Noise &amp; Master Bus</td><td><code>SEL* K1</code> switches Ext Source (Symbiosis / Live USB Audio In)</td></tr>
+          <tr><td><code>LFO</code></td><td>8&times;8 Modular CV Pin Matrix</td><td><code>SEL*</code> for Slew Limiter, VCF LFO Depth, Joy Y, 5 Matrix Templates</td></tr>
+          <tr><td><code>GLO</code></td><td>Chassis &amp; Global &rarr; Quick Help</td><td><code>K1</code> switches all 5 Chassis Finishes • <code>SEL* K3</code> = Audio-Rate LFO</td></tr>
+          <tr><td><code>SAVE</code></td><td>Preset Management</td><td>Short press = Reset Preset • <code>SEL+SAVE</code> = Save User Slot • Hold 3s = Factory Reset</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap" style="text-align:center;">
+    <div class="sec-eyebrow mono">Open Beta • MPL-2.0</div>
+    <h2>Flash your FM-1 in under a minute.</h2>
+    <p class="sec-lead" style="margin-left:auto;margin-right:auto;">No drivers or desktop software required. Open the standalone WebMIDI flasher in Chrome or Edge, plug in your M-VAVE FM-1 over USB-C, and click Install.</p>
+    <div class="cta-row" style="justify-content:center;">
+      <a class="btn btn-pri" href="entropy-helios-1.2.html">Download / Launch WebMIDI Flasher (v1.2)</a>
+      <a class="btn btn-sec" href="entropy-helios-1.2.fwsc">Download Raw .fwsc Package</a>
+      <a class="btn btn-sec" href="entropy-helios-studio.html">Launch WebMIDI Studio</a>
+    </div>
+    <div class="card" style="max-width:740px;margin:24px auto 0;text-align:left;">
+      <span class="tag mono">HARDWARE COMPATIBILITY</span>
+      <h3>Supports Both M-VAVE FM-1 Flash Chipsets</h3>
+      <p>Verified with full browser OTA updates and permanent flash saves (<code>U01&ndash;U08</code> user patches &amp; settings) on both FM-1 revisions: original <strong>Puya P25Q80</strong> (<code>JEDEC 85 60 14</code>) units and newer <strong>UC25HQ80</strong> (<code>JEDEC B3 60 14</code>) units.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap mono">
+    ENTROPY HELIOS v1.0 Beta • Free &amp; Open-Source (MPL-2.0) • Built on fm1-base &amp; felucca-bsp for M-VAVE FM-1
+  </div>
+</footer>
+
+<script>
+// Live 5-Colorway Chassis Switcher
+document.querySelectorAll('.sw').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.documentElement.setAttribute('data-theme', btn.dataset.set);
+    document.querySelectorAll('.sw').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// Subtle animated warm analog harmonic waveform in Hero CRT glass
+const c = document.getElementById('scopeCanvas');
+const ctx = c.getContext('2d');
+let t = 0;
+function draw() {
+  const w = c.width, h = c.height;
+  ctx.fillStyle = '#070e12';
+  ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = 'rgba(74,214,232,0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#e8b438';
+  const accent2 = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim() || '#4ad6e8';
+
+  for (let layer = 0; layer < 2; layer++) {
+    ctx.strokeStyle = layer === 0 ? accent : accent2;
+    ctx.lineWidth = layer === 0 ? 2.4 : 1.5;
+    ctx.beginPath();
+    for (let x = 0; x < w; x += 2) {
+      const p = x / w * Math.PI * 4;
+      const y = h/2
+        + Math.sin(p + t * (layer ? 0.9 : 1.2)) * 22
+        + Math.sin(p * 1.5 - t * 0.7 + layer) * 12
+        + Math.sin(p * 0.5 + t * 0.4) * 8;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  t += 0.025;
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
