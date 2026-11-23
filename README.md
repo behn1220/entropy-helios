@@ -12,6 +12,13 @@
 - **36 Mood-Grouped Presets + 8 User Flash Slots**: 20 warm analog `[CALM]` presets with automatic Analog Warmth Guard, 8 `[LUSH]` cinematic presets, 8 `[EDGE]` experimental presets, plus 8 writable flash slots (`U01–U08`).
 - **Live USB Audio In FX & WebMIDI Studio**: Process external stereo USB audio through the filters, spring tank, and 16 stacked FX cartridges—plus a desktop & mobile **WebMIDI Studio** featuring an 8×8 CV Pin Matrix, 2D Vector Joystick, JSON user-bank backup, **Webcam Optical Photoresistor Sensor**, and **Desk-Tap Virtual Piezo Mic**.
 
+## Hardware Compatibility (Both FM-1 Flash Chipsets Supported)
+
+Entropy Helios v1.0 Beta supports **both M-VAVE FM-1 hardware revisions** out of the box—including full browser OTA flashing and permanent flash saves (`U01–U08` user patches & chassis/global settings):
+
+- **Puya P25Q80** (`JEDEC 85 60 14`, 1 MiB) — original stock FM-1 units
+- **UC25HQ80** (`JEDEC B3 60 14`, 1 MiB) — newer FM-1 units (autumn 2026+ / AliExpress)
+
 ## Quick Start (Flash via Browser)
 
 1. Open `docs/entropy-helios-1.0.html` (or your live GitHub Pages site) in **Chrome** or **Edge**.
@@ -26,4 +33,5 @@ Released under the **Mozilla Public License 2.0 (MPL-2.0)** — see [LICENSE](LI
 Entropy Helios is built on top of open-source M-VAVE FM-1 community foundations (MPL-2.0):
 - **Charles Vestal** — `fm1-base` platform framework, WebMIDI OTA installer, and `engine/dsp/fastmath.h` single-precision math library.
 - **Leo Kuroshita (`@kurogedelic`, Hügelton Instruments)** — `felucca-bsp` hardware board support package and OTA tooling.
+- **Laurens (`@profikid`)** — dual flash chipset support (`Puya P25Q80` + `UC25HQ80` in `fm1-base`).
 - **Styves Goupil** — `engine/dsp/dsp.h` DSP helpers and `build.sh` build script template (from FRASIL).

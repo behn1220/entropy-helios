@@ -6,6 +6,8 @@
 
 ## 1. Quick Start (First 60 Seconds)
 
+> **Hardware Compatibility:** Entropy Helios v1.0 Beta supports **both M-VAVE FM-1 flash chipsets** with full browser OTA updates and permanent flash saves (`U01–U08` & settings): original **Puya P25Q80** (`JEDEC 85 60 14`) units and newer **UC25HQ80** (`JEDEC B3 60 14`) units.
+
 1. **Flash Firmware:** Open `entropy-helios-1.0.html` in Chrome or Edge, connect your FM-1 over USB-C, and click **Install**. After reboot, confirm **`HELIOS 1.0`** in the top-left corner of the screen.
 2. **Start Listening:** Turn up the **MASTER** volume knob. You'll start in **`GEN DRONE`** mode on Patch **`P01 WARM ANALOG SEA`**.
 3. **Browse 36 Factory Presets (Grouped by Mood) + 8 User Slots:** Turn **`PRESET`**:
