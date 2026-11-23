@@ -70,6 +70,13 @@ h1{margin:0;font-size:20px;color:var(--gold);letter-spacing:1px;}
 .slot{background:var(--inp);border:1px solid var(--bdr);border-radius:7px;padding:8px 6px;text-align:center;font-size:12px;}
 .slot.used{border-color:var(--cyan);}
 .status{font-size:13px;color:var(--green);font-weight:700;}
+.midi-banner{display:none;background:var(--card);border:2px solid var(--copper);border-radius:10px;padding:14px 16px;margin-bottom:14px;line-height:1.5;}
+.midi-banner.show{display:block;}
+.midi-banner-hd{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.midi-banner-title{font-size:15px;font-weight:700;color:var(--copper);letter-spacing:.5px;}
+.midi-banner p{margin:0 0 8px 0;font-size:13px;color:var(--txt);}
+.midi-banner .midi-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.midi-banner a.btn{text-decoration:none;display:inline-block;}
 @media(max-width:760px){
   body{padding:10px;}
   .grid{grid-template-columns:1fr;}
@@ -103,6 +110,16 @@ h1{margin:0;font-size:20px;color:var(--gold);letter-spacing:1px;}
     <button class="btn cyan" id="btnSync">Sync FM-1</button>
   </div>
 </header>
+
+<div id="midiBanner" class="midi-banner" role="alert">
+  <div class="midi-banner-hd">
+    <span class="midi-banner-title" id="midiBannerTitle">WebMIDI Not Supported in This Browser</span>
+    <button class="btn" id="btnDismissMidi" style="padding:4px 10px;font-size:12px;">Dismiss</button>
+  </div>
+  <p id="midiBannerMsg"></p>
+  <p style="font-size:12px;color:var(--dim);margin-bottom:0;" id="midiBannerNote"></p>
+  <div class="midi-links" id="midiBannerLinks"></div>
+</div>
 
 <div class="grid">
   <!-- Transport, Presets & Global -->
@@ -488,7 +505,82 @@ document.getElementById("fileIn").onchange=async e=>{
   document.getElementById("stat").textContent="Restoring user slots to FM-1 flash...";
 };
 document.getElementById("btnSync").onclick=()=>sx([0x01]);
+
+/* Browser & Platform WebMIDI Compatibility Check */
+function checkWebMidiSupport(){
+  const hasMidi=typeof navigator.requestMIDIAccess==="function";
+  const secure=window.isSecureContext!==false;
+  if(hasMidi && secure) return true;
+
+  const ua=navigator.userAgent||"";
+  const isIOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  const isAndroid=/Android/i.test(ua);
+  const isMac=/Macintosh|Mac OS X/i.test(ua)&&!isIOS;
+  const isWin=/Windows/i.test(ua);
+  const isLinux=/Linux/i.test(ua)&&!isAndroid;
+
+  const titleEl=document.getElementById("midiBannerTitle");
+  const msgEl=document.getElementById("midiBannerMsg");
+  const noteEl=document.getElementById("midiBannerNote");
+  const linksEl=document.getElementById("midiBannerLinks");
+  const statEl=document.getElementById("stat");
+  linksEl.innerHTML="";
+
+  const addLink=(label,href,cls="btn")=>{
+    const a=document.createElement("a");
+    a.className=cls; a.href=href; a.target="_blank"; a.rel="noopener noreferrer";
+    a.textContent=label; linksEl.appendChild(a);
+  };
+
+  if(!secure){
+    titleEl.textContent="HTTPS Required for WebMIDI, Webcam & Mic";
+    msgEl.textContent="This page was opened over an insecure HTTP connection. Browsers block WebMIDI, camera, and microphone access unless the Studio is served over HTTPS (or localhost).";
+    noteEl.textContent="Open the official HTTPS Studio on GitHub Pages to connect your FM-1:";
+    addLink("Open HTTPS Studio","https://behn1220.github.io/entropy-helios/entropy-helios-studio.html","btn cyan");
+    statEl.textContent="HTTPS required"; statEl.style.color="var(--copper)";
+  } else if(isIOS){
+    titleEl.textContent="WebMIDI Not Supported in iOS / iPadOS Safari & Standard Browsers";
+    msgEl.textContent="Apple requires Safari, Chrome, Edge, and Firefox on iPhone/iPad to use WebKit, which does not include WebMIDI. To control your FM-1 over USB-C (or Lightning Camera Adapter) from iOS/iPadOS, open this page inside the dedicated Web MIDI Browser app.";
+    noteEl.textContent="You can also use Google Chrome or Microsoft Edge on Windows, macOS, Linux, or Android. (You can still explore the controls and test the camera/mic visualizers below.)";
+    addLink("Get Web MIDI Browser (App Store)","https://apps.apple.com/app/web-midi-browser/id953846217","btn cyan");
+    statEl.textContent="iOS: use Web MIDI Browser"; statEl.style.color="var(--copper)";
+  } else if(isAndroid){
+    titleEl.textContent="WebMIDI Not Supported in This Android Browser";
+    msgEl.textContent="Your current browser (or in-app webview) does not support WebMIDI. Open this Studio directly in Google Chrome or Microsoft Edge for Android, and connect your FM-1 using a USB-C OTG cable.";
+    noteEl.textContent="Tip: If you opened this link from an app (like Reddit, Discord, or Mail), tap the menu and choose \"Open in Chrome\".";
+    addLink("Google Chrome (Play Store)","https://play.google.com/store/apps/details?id=com.android.chrome","btn cyan");
+    addLink("Microsoft Edge (Play Store)","https://play.google.com/store/apps/details?id=com.microsoft.emmx","btn");
+    statEl.textContent="Open in Chrome / Edge"; statEl.style.color="var(--copper)";
+  } else if(isMac){
+    titleEl.textContent="WebMIDI Not Supported in This macOS Browser (e.g. Safari)";
+    msgEl.textContent="Safari on macOS does not support WebMIDI. Please open Entropy Helios Studio in a Chromium-based browser for full USB-MIDI & SysEx support:";
+    noteEl.textContent="Recommended on macOS: Google Chrome, Microsoft Edge, Brave, or Opera (Firefox 108+ also supports WebMIDI with site permission).";
+    addLink("Download Chrome","https://www.google.com/chrome/","btn cyan");
+    addLink("Download Edge","https://www.microsoft.com/edge","btn");
+    addLink("Download Brave","https://brave.com/","btn");
+    statEl.textContent="Use Chrome / Edge on macOS"; statEl.style.color="var(--copper)";
+  } else {
+    const plat=isWin?"Windows":isLinux?"Linux":"your device";
+    titleEl.textContent="WebMIDI Not Supported in This Browser";
+    msgEl.textContent=`Your current browser on ${plat} does not expose the WebMIDI API needed to communicate with your FM-1 over USB. Please open this page in a WebMIDI-capable browser:`;
+    noteEl.textContent="Recommended: Google Chrome, Microsoft Edge, Brave, or Opera for full SysEx & Patch Librarian support.";
+    addLink("Download Chrome","https://www.google.com/chrome/","btn cyan");
+    addLink("Download Edge","https://www.microsoft.com/edge","btn");
+    addLink("Download Brave","https://brave.com/","btn");
+    statEl.textContent="WebMIDI unavailable"; statEl.style.color="var(--copper)";
+  }
+
+  document.getElementById("midiBanner").classList.add("show");
+  return false;
+}
+document.getElementById("btnDismissMidi").onclick=()=>document.getElementById("midiBanner").classList.remove("show");
+const webMidiOk=checkWebMidiSupport();
+
 document.getElementById("btnConn").onclick=async()=>{
+  if(!checkWebMidiSupport()){
+    document.getElementById("midiBanner").scrollIntoView({behavior:"smooth",block:"nearest"});
+    return;
+  }
   try{
     const acc=await navigator.requestMIDIAccess({sysex:true});
     const re=/entropy|helios|fm-?1/i;
