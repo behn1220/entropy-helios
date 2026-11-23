@@ -1,5 +1,7 @@
 # ENTROPY HELIOS build settings for the M-VAVE FM-1 (MPL-2.0) (fm1-base's tools/build.py: ./build.sh)
-name = "entropy-helios"          # build outputs: entropy-helios-1.0.fwsc, entropy-helios-1.0.html
+name = "entropy-helios"          # build outputs: entropy-helios-1.2.fwsc, entropy-helios-1.2.html
+title = "Entropy Helios"
+author = "behn1220"
 id_prefix = "FM-1_88"            # package identity: FM-1_88XXYYZZ
 usb_manufacturer = "ENTROPY AUDIO"
 usb_product = "ENTROPY HELIOS FM-1"
@@ -11,7 +13,12 @@ backup = false
 include = ["../engine", "../engine/dsp"]
 o2 = ["../engine/dsp/helios.c"]  # Dual-Core Entropy Helios DSP compiled at -O2
 words = "words.tsv"
-tagline = "dual-core 8-voice ambient drone synthesizer"
+tagline = "Dual-core 8-voice ambient drone synth with ENTROPY & PURE HW modes"
+description = "Entropy Helios turns the M-VAVE FM-1 into two instruments in one: ENTROPY Mode (a dual-core generative ambient drone synthesizer with 36 mood-grouped presets and 8 user slots) and PURE HW Mode (16 blank INIT hardware slots with zero generative interference). Features 6 five-oscillator drone voices, 2 melodic voices with dual 5-step sequencers, 12 bottom-row touch plates, dual analog-modeled VCFs, a 3-spring reverb tank, 16 stackable FX cartridges, an 8x8 modular CV pin matrix, 5 anodized chassis finishes, live USB Audio FX processing, and a full WebMIDI Hardware Studio."
+tags = ["synth", "ambient", "generative", "sequencer", "experimental"]
+install = "https://behn1220.github.io/entropy-helios/entropy-helios-1.2.html"
+site = "https://behn1220.github.io/entropy-helios/"
 repo = "https://github.com/behn1220/entropy-helios"
+screenshot = "docs/screenshot.png"
 licence = "MPL-2.0"
-credits = "ENTROPY HELIOS for M-VAVE FM-1. Dual-core 8-voice ambient drone & microtonal synthesizer (MPL-2.0) on fm1-base and felucca-bsp."
+credits = "Built on fm1-base by Charles Vestal, felucca-bsp by Leo Kuroshita (Hugelton Instruments), dual flash chipset support by Laurens (@profikid), and DSP helpers by Styves Goupil."
