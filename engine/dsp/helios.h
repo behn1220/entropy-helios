@@ -27,7 +27,7 @@
 #define HL_NMEL     2u   /* Melodic voices: 0 = V4 (Left Core 0), 1 = V5 (Right Core 1) */
 #define HL_NSTEPS   5u   /* 5-step analog sequencer per melodic voice */
 #define HL_NPLATES  12u  /* 12 copper capacitive touch plates */
-#define HL_NPATCHES 36u  /* 36 curated Entropy Helios factory patches grouped by mood: 20 CALM (P01..P20), 8 LUSH (P21..P28), 8 EDGE (P29..P36) */
+#define HL_NPATCHES 18u  /* 18 handcrafted diverse Entropy Helios factory patches: 8 CALM (P01..P08), 5 LUSH (P09..P13), 5 EDGE (P14..P18) */
 #define HL_NUSER    8u   /* 8 permanent writable Entropy user patch slots (E01..E08) saved in flash */
 #define HL_NPURE    16u  /* 16 permanent writable Pure Hardware INIT slots (H01..H16) saved in flash */
 #define HL_NTOTAL_P (HL_NPATCHES + HL_NUSER)

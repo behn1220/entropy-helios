@@ -96,303 +96,175 @@ typedef struct {
     float micro_detune;
 } hl_patch_t;
 
-/* 36 Curated Entropy Helios Factory Patches — Grouped by Mood:
- *   CALM (0..19: P01..P08 Upgraded Calm + P09..P16 Aphex/Eno/BoC Classics + P17..P20 Ultra-Warm Sub-Heavy Bliss)
- *   LUSH (20..27: P21..P28 Cinematic)
- *   EDGE (28..35: P29..P36 Gritty / Experimental) */
+/* 18 Handcrafted, Radically Diverse Entropy Helios Factory Patches — Grouped by Mood:
+ *   CALM (0..7:   P01..P08 — Distinct scales, rhythms, polymeters, pure-drone & unique melodic contours)
+ *   LUSH (8..12:  P09..P13 — Cinematic brass, desert winds, Berlin pulse, gothic choir, live USB FX)
+ *   EDGE (13..17: P14..P18 — Soviet monolith, Geiger reactor, screaming VCF, S&H robotics, X-mod flare) */
 static const hl_patch_t HL_PATCHES[HL_NPATCHES] = {
-    /* ================= [CALM] (0 .. 7: Upgraded Pure Warmth & Open Harmony) ================= */
+    /* ================= [CALM] (0 .. 7: 8 Radically Distinct Ambient Worlds) ================= */
+    /* P01: Classic warm C Major ocean, wide breathing 5th/9th melody, Shimmer Hall */
     {"WARM ANALOG SEA", 1, 0, 6, 56, 0,
      {36, 43, 48, 52, 55, 64}, {0.14f, 0.16f, 0.18f, 0.15f, 0.18f, 0.20f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
      {0.84f, 0.76f, 0.70f, 0.66f, 0.62f, 0.54f},
-     {2, 3}, {0, 1}, {0.04f, 0.03f}, {0.54f, 0.48f}, {1, 1}, {1, 2}, {{0, 2, 4, 7, 4}, {7, 9, 11, 9, 7}},
+     {2, 3}, {0, 1}, {0.06f, 0.05f}, {0.52f, 0.46f}, {1, 1}, {1, 2}, {{0, 4, 7, 11, 7}, {9, 7, 4, 2, 0}},
      {0.28f, 0.32f}, {0.14f, 0.16f}, {0, 0}, 0.07f, 0.20f,
      0.05f, 0, 0.72f, 0, 0.66f, 0.88f, 0.36f, 0.44f,
      0.0f, 0.0f, 0.15f, 0.82f, 0, 0.02f},
 
-    {"VELVET SUNSET", 1, 5, 6, 60, 0,
-     {41, 48, 53, 57, 60, 64}, {0.13f, 0.15f, 0.17f, 0.16f, 0.18f, 0.19f}, {1, 0, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.82f, 0.74f, 0.70f, 0.64f, 0.60f, 0.52f},
-     {2, 5}, {0, 1}, {0.04f, 0.04f}, {0.54f, 0.48f}, {1, 1}, {1, 2}, {{0, 2, 4, 7, 4}, {9, 7, 4, 7, 9}},
-     {0.30f, 0.34f}, {0.14f, 0.16f}, {0, 0}, 0.06f, 0.20f,
-     0.05f, 0, 0.74f, 1, 0.62f, 0.84f, 0.34f, 0.42f,
-     0.0f, 0.0f, 0.14f, 0.84f, 0, 0.02f},
+    /* P02: Pure meditative F Lydian drone ocean — ZERO repeating sequencer notes, Blackhole cavern */
+    {"STONE IN FOCUS", 1, 5, 3, 44, 0,
+     {29, 36, 41, 45, 48, 59}, {0.16f, 0.18f, 0.20f, 0.16f, 0.20f, 0.22f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+     {0.90f, 0.82f, 0.74f, 0.68f, 0.62f, 0.54f},
+     {5, 2}, {-1, 0}, {0.10f, 0.10f}, {0.36f, 0.32f}, {0, 0}, {0, 0}, {{0, 6, 4, 9, 2}, {11, 6, 4, 7, 2}},
+     {0.21f, 0.24f}, {0.12f, 0.14f}, {0, 0}, 0.05f, 0.15f,
+     0.04f, 0, 0.74f, 2, 0.74f, 0.94f, 0.28f, 0.32f,
+     0.0f, 0.0f, 0.10f, 0.90f, 0, 0.02f},
 
-    {"TAPE ARCHIVE", 1, 2, 2, 54, 1,
-     {38, 45, 50, 53, 57, 62}, {0.16f, 0.18f, 0.18f, 0.16f, 0.20f, 0.20f}, {1, 1, 0, 0, 0, 0}, {-1, 0, -1, 1, 0, 1},
-     {0.84f, 0.78f, 0.70f, 0.64f, 0.58f, 0.52f},
-     {2, 3}, {0, 0}, {0.05f, 0.04f}, {0.52f, 0.46f}, {1, 1}, {1, 1}, {{0, 2, 4, 7, 4}, {7, 9, 7, 4, 2}},
-     {0.26f, 0.30f}, {0.16f, 0.16f}, {0, 0}, 0.08f, 0.20f,
-     0.09f, 0, 0.68f, 1, 0.64f, 0.86f, 0.28f, 0.38f,
-     0.0f, 0.0f, 0.14f, 0.84f, 0, 0.03f},
-
-    {"TIBETAN PLATEAU", 1, 7, 6, 46, 0,
-     {31, 38, 43, 47, 50, 59}, {0.12f, 0.14f, 0.16f, 0.14f, 0.18f, 0.18f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.86f, 0.80f, 0.74f, 0.68f, 0.62f, 0.54f},
-     {5, 3}, {0, 1}, {0.05f, 0.04f}, {0.50f, 0.44f}, {1, 1}, {0, 1}, {{0, 2, 4, 7, 4}, {7, 9, 11, 7, 4}},
-     {0.26f, 0.30f}, {0.16f, 0.18f}, {0, 0}, 0.06f, 0.18f,
-     0.05f, 0, 0.64f, 2, 0.72f, 0.92f, 0.40f, 0.40f,
-     0.0f, 0.0f, 0.12f, 0.88f, 0, 0.02f},
-
-    {"ETERNAL DRONE", 1, 9, 0, 44, 1,
-     {33, 40, 45, 48, 52, 60}, {0.14f, 0.16f, 0.18f, 0.16f, 0.18f, 0.20f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.88f, 0.82f, 0.76f, 0.68f, 0.62f, 0.56f},
-     {5, 2}, {0, 0}, {0.06f, 0.06f}, {0.42f, 0.38f}, {0, 0}, {0, 1}, {{0, 2, 4, 7, 4}, {7, 5, 4, 2, 0}},
-     {0.24f, 0.28f}, {0.14f, 0.16f}, {0, 0}, 0.06f, 0.18f,
-     0.04f, 0, 0.72f, 2, 0.72f, 0.94f, 0.36f, 0.38f,
-     0.0f, 0.0f, 0.12f, 0.88f, 0, 0.02f},
-
-    {"SUBHARMONIC VOID", 1, 3, 6, 46, 0,
-     {27, 34, 39, 43, 46, 55}, {0.13f, 0.15f, 0.17f, 0.16f, 0.19f, 0.20f}, {1, 1, 1, 1, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.92f, 0.84f, 0.76f, 0.66f, 0.60f, 0.52f},
-     {2, 3}, {0, 1}, {0.04f, 0.04f}, {0.48f, 0.42f}, {1, 1}, {0, 1}, {{0, 4, 2, 7, 4}, {7, 9, 7, 4, 2}},
-     {0.22f, 0.26f}, {0.16f, 0.16f}, {0, 0}, 0.06f, 0.18f,
-     0.05f, 0, 0.68f, 2, 0.72f, 0.92f, 0.42f, 0.36f,
-     0.0f, 0.0f, 0.14f, 0.86f, 0, 0.02f},
-
-    {"JUST INTONATION", 1, 0, 6, 52, 2,
-     {36, 43, 48, 52, 55, 64}, {0.10f, 0.12f, 0.14f, 0.12f, 0.15f, 0.16f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.85f, 0.78f, 0.72f, 0.66f, 0.60f, 0.54f},
-     {5, 3}, {0, 1}, {0.03f, 0.03f}, {0.54f, 0.48f}, {1, 1}, {1, 2}, {{0, 2, 4, 7, 4}, {7, 9, 11, 9, 7}},
-     {0.30f, 0.34f}, {0.12f, 0.14f}, {0, 0}, 0.05f, 0.20f,
-     0.04f, 0, 0.68f, 0, 0.68f, 0.90f, 0.40f, 0.44f,
-     0.0f, 0.0f, 0.14f, 0.84f, 0, 0.02f},
-
-    {"ENTROPY SYMBIOSIS", 1, 0, 2, 56, 0,
-     {36, 43, 48, 51, 55, 62}, {0.14f, 0.16f, 0.18f, 0.16f, 0.19f, 0.20f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.76f, 0.70f, 0.64f, 0.60f, 0.56f, 0.50f},
-     {2, 3}, {0, 1}, {0.04f, 0.04f}, {0.50f, 0.46f}, {1, 1}, {1, 2}, {{0, 2, 4, 7, 4}, {7, 9, 7, 4, 2}},
-     {0.28f, 0.32f}, {0.16f, 0.18f}, {0, 0}, 0.08f, 0.22f,
-     0.04f, 0, 0.70f, 0, 0.68f, 0.88f, 0.38f, 0.44f,
-     0.55f, 0.0f, 0.16f, 0.80f, 0, 0.02f},
-
-    /* ================= [CALM] (8 .. 15: Aphex Twin / Brian Eno / Boards of Canada Classics) ================= */
-    {"RHUBARB TAPE", 1, 9, 6, 62, 0,
-     {33, 40, 45, 49, 52, 61}, {0.14f, 0.16f, 0.18f, 0.15f, 0.18f, 0.20f}, {1, 0, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.82f, 0.74f, 0.70f, 0.66f, 0.62f, 0.54f},
-     {3, 5}, {0, 1}, {0.03f, 0.04f}, {0.56f, 0.50f}, {1, 1}, {1, 2}, {{0, 2, 4, 7, 4}, {7, 9, 11, 9, 7}},
-     {0.34f, 0.38f}, {0.14f, 0.16f}, {0, 0}, 0.06f, 0.20f,
-     0.04f, 0, 0.72f, 0, 0.68f, 0.90f, 0.44f, 0.46f,
-     0.0f, 0.0f, 0.14f, 0.85f, 0, 0.02f},
-
-    {"STONE IN FOCUS", 1, 5, 6, 54, 0,
-     {29, 36, 41, 45, 48, 57}, {0.16f, 0.18f, 0.20f, 0.16f, 0.20f, 0.22f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.86f, 0.78f, 0.72f, 0.68f, 0.60f, 0.52f},
-     {2, 3}, {0, 1}, {0.05f, 0.04f}, {0.48f, 0.44f}, {1, 1}, {0, 1}, {{0, 4, 2, 7, 4}, {7, 11, 9, 7, 9}},
-     {0.28f, 0.32f}, {0.14f, 0.16f}, {0, 0}, 0.06f, 0.16f,
-     0.05f, 0, 0.68f, 2, 0.72f, 0.92f, 0.34f, 0.40f,
-     0.0f, 0.0f, 0.12f, 0.88f, 0, 0.02f},
-
-    {"AIRPORT TAPE 1/1", 1, 5, 6, 68, 2,
-     {41, 48, 53, 57, 60, 64}, {0.10f, 0.12f, 0.14f, 0.12f, 0.15f, 0.16f}, {1, 0, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+    /* P03: Polymetric 3-vs-5 G Major glass tape chimes with sparse rests & Reverse Tape */
+    {"AIRPORT TAPE 1/1", 1, 7, 6, 68, 2,
+     {31, 38, 43, 47, 50, 59}, {0.10f, 0.12f, 0.14f, 0.12f, 0.15f, 0.16f}, {1, 0, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
      {0.66f, 0.60f, 0.56f, 0.54f, 0.50f, 0.46f},
-     {3, 5}, {0, 1}, {0.02f, 0.02f}, {0.64f, 0.58f}, {1, 1}, {2, 1}, {{0, 2, 4, 7, 9}, {7, 11, 9, 7, 4}},
+     {3, 5}, {0, 1}, {0.02f, 0.02f}, {0.64f, 0.58f}, {1, 1}, {2, 1}, {{11, 7, 4, 0, 2}, {9, 4, 11, 7, 5}},
      {0.38f, 0.40f}, {0.10f, 0.12f}, {0, 0}, 0.05f, 0.18f,
-     0.03f, 0, 0.64f, 0, 0.72f, 0.90f, 0.50f, 0.52f,
+     0.03f, 0, 0.62f, 6, 0.72f, 0.90f, 0.46f, 0.50f,
      0.0f, 0.0f, 0.14f, 0.84f, 0, 0.02f},
 
-    {"APOLLO AN ENDING", 1, 2, 6, 58, 0,
-     {38, 45, 50, 54, 57, 66}, {0.16f, 0.18f, 0.20f, 0.18f, 0.20f, 0.22f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.84f, 0.78f, 0.74f, 0.70f, 0.66f, 0.60f},
-     {5, 3}, {0, 1}, {0.04f, 0.03f}, {0.56f, 0.52f}, {1, 1}, {1, 2}, {{0, 4, 7, 9, 7}, {7, 9, 11, 9, 7}},
-     {0.34f, 0.38f}, {0.14f, 0.16f}, {0, 0}, 0.06f, 0.20f,
-     0.04f, 0, 0.76f, 0, 0.76f, 0.94f, 0.56f, 0.48f,
-     0.0f, 0.0f, 0.14f, 0.86f, 0, 0.02f},
+    /* P04: Nostalgic D Dorian warped cassette bounce (PWM + Fold Tri, forward vs reverse, Chorus+Pitch) */
+    {"BOARDWALK TAPE", 1, 2, 2, 74, 0,
+     {38, 45, 50, 53, 57, 62}, {0.18f, 0.20f, 0.22f, 0.18f, 0.22f, 0.24f}, {1, 1, 0, 0, 0, 0}, {-1, 0, -1, 1, 0, 1},
+     {0.80f, 0.74f, 0.70f, 0.64f, 0.58f, 0.52f},
+     {1, 2}, {0, 1}, {0.14f, 0.18f}, {0.58f, 0.52f}, {1, 1}, {2, 4}, {{0, 3, 5, 2, 6}, {10, 8, 5, 7, 3}},
+     {0.31f, 0.35f}, {0.18f, 0.20f}, {0, 0}, 0.10f, 0.24f,
+     0.10f, 0, 0.80f, 9, 0.66f, 0.84f, 0.34f, 0.40f,
+     0.0f, 0.0f, 0.20f, 0.76f, 0, 0.03f},
 
-    {"OLSON SUNSET", 1, 7, 6, 72, 0,
-     {31, 38, 43, 47, 50, 59}, {0.18f, 0.20f, 0.22f, 0.18f, 0.22f, 0.24f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.82f, 0.76f, 0.72f, 0.68f, 0.62f, 0.56f},
-     {2, 3}, {0, 1}, {0.03f, 0.03f}, {0.58f, 0.52f}, {1, 1}, {2, 2}, {{0, 2, 4, 6, 7}, {7, 9, 7, 4, 2}},
-     {0.32f, 0.36f}, {0.16f, 0.18f}, {0, 0}, 0.08f, 0.22f,
-     0.08f, 0, 0.78f, 9, 0.64f, 0.84f, 0.36f, 0.40f,
-     0.0f, 0.0f, 0.18f, 0.78f, 0, 0.03f},
+    /* P05: A Minor sparse pentatonic bells + vocal formant pad, pendulum 4-vs-5, Granular clouds */
+    {"KYOTO RAIN BELLS", 1, 9, 0, 62, 0,
+     {33, 40, 45, 48, 52, 60}, {0.13f, 0.15f, 0.17f, 0.14f, 0.18f, 0.20f}, {1, 0, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+     {0.78f, 0.72f, 0.68f, 0.62f, 0.58f, 0.50f},
+     {3, 4}, {1, 0}, {0.02f, 0.22f}, {0.60f, 0.50f}, {1, 1}, {5, 1}, {{0, 4, 7, 10, 4}, {11, 7, 3, 10, 5}},
+     {0.34f, 0.38f}, {0.16f, 0.18f}, {0, 3}, 0.06f, 0.20f,
+     0.06f, 0, 0.68f, 3, 0.72f, 0.90f, 0.44f, 0.48f,
+     0.0f, 0.0f, 0.16f, 0.84f, 0, 0.02f},
 
-    {"CAMPFIRE TAPE", 1, 2, 2, 74, 0,
-     {38, 45, 50, 53, 57, 62}, {0.16f, 0.18f, 0.20f, 0.18f, 0.20f, 0.22f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.80f, 0.74f, 0.70f, 0.66f, 0.60f, 0.54f},
-     {3, 2}, {0, 1}, {0.03f, 0.04f}, {0.60f, 0.54f}, {1, 1}, {2, 3}, {{0, 2, 4, 7, 4}, {7, 9, 11, 7, 4}},
-     {0.34f, 0.38f}, {0.16f, 0.18f}, {0, 0}, 0.08f, 0.20f,
-     0.07f, 0, 0.70f, 1, 0.66f, 0.86f, 0.34f, 0.44f,
-     0.0f, 0.0f, 0.18f, 0.80f, 0, 0.03f},
-
-    {"LICHEN CATHEDRAL", 1, 0, 6, 48, 0,
-     {36, 43, 48, 52, 55, 64}, {0.12f, 0.14f, 0.16f, 0.14f, 0.16f, 0.18f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.84f, 0.78f, 0.74f, 0.70f, 0.64f, 0.58f},
-     {5, 2}, {0, 0}, {0.08f, 0.08f}, {0.36f, 0.32f}, {0, 0}, {0, 0}, {{0, 2, 4, 7, 4}, {7, 9, 11, 9, 7}},
-     {0.30f, 0.34f}, {0.12f, 0.14f}, {0, 0}, 0.05f, 0.16f,
-     0.03f, 0, 0.66f, 2, 0.76f, 0.94f, 0.38f, 0.40f,
-     0.0f, 0.0f, 0.10f, 0.90f, 0, 0.02f},
-
-    {"DISCREET LOOP", 1, 7, 6, 66, 2,
-     {31, 38, 43, 47, 50, 59}, {0.13f, 0.15f, 0.17f, 0.14f, 0.18f, 0.20f}, {1, 0, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.74f, 0.70f, 0.66f, 0.62f, 0.58f, 0.52f},
-     {3, 5}, {0, 1}, {0.02f, 0.03f}, {0.62f, 0.56f}, {1, 1}, {2, 5}, {{0, 2, 4, 7, 9}, {11, 9, 7, 4, 2}},
-     {0.34f, 0.38f}, {0.14f, 0.16f}, {0, 0}, 0.06f, 0.20f,
-     0.04f, 0, 0.72f, 3, 0.70f, 0.90f, 0.46f, 0.46f,
-     0.0f, 0.0f, 0.14f, 0.86f, 0, 0.02f},
-
-    /* ================= [CALM] (16 .. 19: ULTRA-WARM SUB-HEAVY PURE ANALOG BLISS — Zero Brassy Highs!) ================= */
-    {"VELVET SUB OCEAN", 1, 5, 6, 48, 0,
-     {29, 36, 41, 45, 48, 53}, {0.12f, 0.14f, 0.16f, 0.14f, 0.16f, 0.18f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.92f, 0.84f, 0.76f, 0.66f, 0.58f, 0.48f},
-     {2, 5}, {-1, 0}, {0.04f, 0.04f}, {0.46f, 0.42f}, {1, 1}, {0, 1}, {{0, 2, 4, 7, 4}, {7, 4, 2, 4, 7}},
-     {0.19f, 0.21f}, {0.10f, 0.12f}, {0, 0}, 0.04f, 0.14f,
-     0.03f, 0, 0.76f, 2, 0.70f, 0.92f, 0.22f, 0.26f,
-     0.0f, 0.0f, 0.10f, 0.90f, 0, 0.02f},
-
-    {"MIDNIGHT TAPE WRM", 1, 2, 6, 54, 0,
-     {26, 33, 38, 42, 45, 54}, {0.14f, 0.16f, 0.18f, 0.15f, 0.18f, 0.20f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.90f, 0.82f, 0.74f, 0.66f, 0.58f, 0.48f},
-     {2, 3}, {-1, 0}, {0.03f, 0.04f}, {0.50f, 0.44f}, {1, 1}, {1, 2}, {{0, 2, 4, 7, 4}, {7, 9, 7, 4, 2}},
-     {0.21f, 0.23f}, {0.12f, 0.12f}, {0, 0}, 0.05f, 0.16f,
-     0.05f, 0, 0.78f, 1, 0.66f, 0.88f, 0.24f, 0.28f,
-     0.0f, 0.0f, 0.12f, 0.88f, 0, 0.02f},
-
-    {"DEEP WOOL DRONE", 1, 0, 6, 42, 0,
-     {24, 31, 36, 40, 43, 52}, {0.12f, 0.14f, 0.16f, 0.14f, 0.16f, 0.18f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.94f, 0.86f, 0.78f, 0.68f, 0.58f, 0.46f},
-     {2, 5}, {-1, 0}, {0.06f, 0.06f}, {0.34f, 0.30f}, {0, 0}, {0, 0}, {{0, 2, 4, 7, 4}, {7, 9, 7, 4, 2}},
-     {0.18f, 0.20f}, {0.08f, 0.10f}, {0, 0}, 0.04f, 0.12f,
-     0.02f, 0, 0.74f, 2, 0.74f, 0.94f, 0.18f, 0.22f,
+    /* P06: Ultra-deep C Stacked Fifths sub-bass cello swells with slow 1/1 ostinato, Sub Void */
+    {"DEEP WOOL SUB", 1, 0, 4, 42, 0,
+     {24, 31, 36, 43, 48, 55}, {0.12f, 0.14f, 0.16f, 0.14f, 0.16f, 0.18f}, {1, 1, 1, 1, 0, 0}, {-1, -1, 0, 0, 1, 1},
+     {0.94f, 0.86f, 0.78f, 0.68f, 0.58f, 0.48f},
+     {0, 5}, {-1, -1}, {0.28f, 0.32f}, {0.48f, 0.42f}, {1, 1}, {0, 0}, {{0, 1, 2, 1, 0}, {4, 2, 3, 1, 2}},
+     {0.18f, 0.20f}, {0.10f, 0.12f}, {0, 0}, 0.05f, 0.14f,
+     0.03f, 2, 0.76f, 5, 0.74f, 0.94f, 0.20f, 0.24f,
      0.0f, 0.0f, 0.10f, 0.92f, 0, 0.02f},
 
-    {"SILK HORIZON", 1, 7, 6, 60, 0,
-     {31, 38, 43, 47, 50, 55}, {0.13f, 0.15f, 0.17f, 0.14f, 0.17f, 0.19f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.88f, 0.80f, 0.74f, 0.66f, 0.58f, 0.50f},
-     {2, 3}, {-1, 0}, {0.03f, 0.03f}, {0.54f, 0.48f}, {1, 1}, {1, 2}, {{0, 2, 4, 7, 9}, {7, 4, 2, 4, 7}},
-     {0.22f, 0.24f}, {0.10f, 0.12f}, {0, 0}, 0.05f, 0.16f,
-     0.03f, 0, 0.76f, 0, 0.68f, 0.90f, 0.28f, 0.30f,
-     0.0f, 0.0f, 0.12f, 0.88f, 0, 0.02f},
+    /* P07: E Phrygian warm vocal-choir incense + slow Eastern melisma (1/2 vs Random), Tape Wash */
+    {"PHRYGIAN INCENSE", 1, 4, 1, 52, 1,
+     {28, 35, 40, 47, 52, 56}, {0.15f, 0.17f, 0.19f, 0.16f, 0.20f, 0.22f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+     {0.84f, 0.78f, 0.72f, 0.66f, 0.60f, 0.52f},
+     {4, 2}, {0, 1}, {0.36f, 0.28f}, {0.56f, 0.48f}, {1, 1}, {1, 6}, {{0, 1, 4, 3, 1}, {7, 8, 5, 4, 1}},
+     {0.26f, 0.30f}, {0.20f, 0.22f}, {3, 0}, 0.08f, 0.22f,
+     0.06f, 0, 0.66f, 15, 0.70f, 0.90f, 0.32f, 0.38f,
+     0.0f, 0.0f, 0.14f, 0.86f, 0, 0.04f},
 
-    /* ================= [LUSH] (8 .. 15) ================= */
+    /* P08: Bb Dorian aquatic ripples with VibroTrem shimmer & wide leaping counter-melody */
+    {"FLOATING WATER", 1, 10, 2, 64, 2,
+     {34, 41, 46, 53, 58, 63}, {0.14f, 0.16f, 0.18f, 0.15f, 0.19f, 0.21f}, {1, 0, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+     {0.80f, 0.74f, 0.70f, 0.64f, 0.58f, 0.52f},
+     {5, 3}, {0, 1}, {0.08f, 0.06f}, {0.58f, 0.54f}, {1, 1}, {2, 5}, {{2, 5, 9, 7, 0}, {11, 6, 9, 4, 2}},
+     {0.32f, 0.36f}, {0.16f, 0.18f}, {0, 0}, 0.06f, 0.24f,
+     0.04f, 0, 0.74f, 12, 0.68f, 0.88f, 0.42f, 0.44f,
+     0.0f, 0.0f, 0.18f, 0.82f, 0, 0.02f},
+
+    /* ================= [LUSH] (8 .. 12: 5 Radically Distinct Cinematic Worlds) ================= */
+    /* P09: D Dorian Vangelis minor-9th brass swells + soaring solo V4 lead (V5 off), Shimmer + Space Echo */
     {"NEON RAIN 82", 2, 2, 2, 58, 0,
-     {38, 45, 50, 57, 60, 65}, {0.26f, 0.30f, 0.32f, 0.28f, 0.34f, 0.36f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+     {38, 45, 53, 60, 64, 69}, {0.26f, 0.30f, 0.32f, 0.28f, 0.34f, 0.36f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
      {0.84f, 0.80f, 0.76f, 0.72f, 0.68f, 0.64f},
-     {0, 1}, {0, 1}, {0.42f, 0.48f}, {0.64f, 0.58f}, {1, 1}, {1, 2}, {{0, 3, 4, 5, 4}, {7, 9, 10, 7, 6}},
-     {0.48f, 0.54f}, {0.36f, 0.38f}, {0, 3}, 0.42f, 0.45f,
-     0.12f, 0, 0.74f, 0, 0.68f, 0.88f, 0.62f, 0.64f,
-     0.0f, 0.12f, 0.32f, 0.55f, 1, 0.0f},
+     {0, 1}, {0, 1}, {0.42f, 0.48f}, {0.66f, 0.40f}, {1, 0}, {1, 2}, {{0, 4, 7, 9, 5}, {10, 7, 5, 2, 0}},
+     {0.46f, 0.52f}, {0.34f, 0.38f}, {0, 3}, 0.38f, 0.44f,
+     0.12f, 0, 0.74f, 0, 0.70f, 0.88f, 0.62f, 0.64f,
+     0.0f, 0.10f, 0.30f, 0.62f, 1, 0.0f},
 
-    {"DESERT WIND", 2, 4, 1, 54, 0,
-     {28, 35, 40, 47, 52, 56}, {0.30f, 0.34f, 0.38f, 0.32f, 0.36f, 0.40f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+    /* P10: E Phrygian Maqam desert wind, open Phrygian-dominant drone, reverse vocal melody, Blackhole + Tape Wash */
+    {"DESERT MIRAGE", 2, 4, 1, 54, 0,
+     {28, 35, 40, 44, 47, 53}, {0.30f, 0.34f, 0.38f, 0.32f, 0.36f, 0.40f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
      {0.88f, 0.84f, 0.78f, 0.74f, 0.70f, 0.66f},
-     {4, 0}, {-1, 0}, {0.50f, 0.55f}, {0.66f, 0.60f}, {1, 1}, {1, 4}, {{0, 1, 4, 5, 1}, {7, 8, 7, 6, 8}},
-     {0.44f, 0.50f}, {0.52f, 0.56f}, {3, 1}, 0.56f, 0.48f,
-     0.24f, 0, 0.62f, 2, 0.70f, 0.90f, 0.48f, 0.52f,
+     {4, 0}, {-1, 0}, {0.52f, 0.58f}, {0.66f, 0.58f}, {1, 1}, {1, 4}, {{0, 1, 4, 7, 1}, {11, 8, 7, 4, 1}},
+     {0.44f, 0.50f}, {0.52f, 0.56f}, {1, 3}, 0.54f, 0.48f,
+     0.24f, 0, 0.60f, 2, 0.72f, 0.90f, 0.46f, 0.52f,
      0.0f, 0.18f, 0.28f, 0.50f, 1, 0.16f},
 
-    {"HELIOS CORONA", 2, 9, 3, 68, 2,
-     {33, 40, 45, 52, 59, 64}, {0.28f, 0.32f, 0.35f, 0.30f, 0.36f, 0.38f}, {1, 0, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.82f, 0.78f, 0.74f, 0.72f, 0.68f, 0.64f},
-     {3, 5}, {0, 1}, {0.25f, 0.30f}, {0.62f, 0.58f}, {1, 1}, {2, 3}, {{0, 2, 4, 5, 4}, {11, 9, 7, 6, 8}},
-     {0.56f, 0.62f}, {0.32f, 0.35f}, {0, 0}, 0.36f, 0.42f,
-     0.10f, 0, 0.76f, 0, 0.72f, 0.90f, 0.74f, 0.70f,
-     0.0f, 0.10f, 0.42f, 0.45f, 1, 0.0f},
+    /* P11: F# Minor 108 BPM Berlin School polymetric 5-vs-4 staccato analog plucks, Space Echo */
+    {"BERLIN SEQUENCER", 2, 6, 0, 108, 0,
+     {30, 42, 49, 54, 57, 61}, {0.20f, 0.24f, 0.26f, 0.22f, 0.28f, 0.30f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+     {0.80f, 0.74f, 0.70f, 0.66f, 0.62f, 0.58f},
+     {0, 1}, {-1, 1}, {0.02f, 0.03f}, {0.72f, 0.66f}, {1, 1}, {3, 2}, {{0, 7, 3, 5, 2}, {10, 7, 5, 9, 3}},
+     {0.54f, 0.58f}, {0.44f, 0.46f}, {0, 0}, 0.46f, 0.36f,
+     0.08f, 0, 0.64f, 1, 0.66f, 0.76f, 0.42f, 0.62f,
+     0.0f, 0.12f, 0.58f, 0.18f, 2, 0.0f},
 
-    {"CATHEDRAL VCF", 2, 0, 5, 50, 0,
-     {36, 43, 48, 55, 56, 63}, {0.24f, 0.28f, 0.32f, 0.30f, 0.34f, 0.36f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+    /* P12: C Harmonic Minor gothic minMaj7 organ + slow cathedral bell chimes, Phaser+Rev + Granular */
+    {"GLASS CATHEDRAL", 2, 0, 5, 48, 0,
+     {36, 43, 51, 59, 62, 67}, {0.22f, 0.26f, 0.30f, 0.28f, 0.32f, 0.34f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
      {0.84f, 0.80f, 0.76f, 0.72f, 0.68f, 0.64f},
-     {4, 1}, {0, 0}, {0.48f, 0.52f}, {0.60f, 0.56f}, {1, 1}, {1, 2}, {{0, 2, 3, 5, 4}, {7, 6, 8, 9, 7}},
-     {0.42f, 0.48f}, {0.58f, 0.62f}, {3, 3}, 0.52f, 0.50f,
-     0.14f, 0, 0.68f, 4, 0.70f, 0.88f, 0.56f, 0.58f,
-     0.0f, 0.15f, 0.30f, 0.60f, 1, 0.0f},
+     {4, 3}, {0, 1}, {0.44f, 0.18f}, {0.60f, 0.58f}, {1, 1}, {0, 1}, {{0, 6, 11, 7, 2}, {11, 7, 3, 6, 0}},
+     {0.42f, 0.48f}, {0.58f, 0.62f}, {3, 3}, 0.48f, 0.50f,
+     0.12f, 0, 0.70f, 4, 0.72f, 0.90f, 0.58f, 0.60f,
+     0.0f, 0.15f, 0.28f, 0.64f, 1, 0.0f},
 
-    {"BERLIN SEQUENCER", 2, 6, 0, 92, 0,
-     {30, 37, 42, 49, 54, 61}, {0.22f, 0.26f, 0.28f, 0.24f, 0.30f, 0.32f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.80f, 0.76f, 0.72f, 0.68f, 0.64f, 0.60f},
-     {0, 1}, {0, 1}, {0.12f, 0.15f}, {0.68f, 0.64f}, {1, 1}, {2, 3}, {{0, 3, 4, 5, 4}, {7, 10, 9, 7, 6}},
-     {0.52f, 0.58f}, {0.42f, 0.45f}, {0, 0}, 0.44f, 0.38f,
-     0.10f, 0, 0.66f, 1, 0.64f, 0.76f, 0.45f, 0.60f,
-     0.0f, 0.14f, 0.58f, 0.22f, 2, 0.0f},
+    /* P13: G Lydian #4 suspended chord + live USB Audio In / Preamp FX + 3-vs-5 pendulum arps, Spectral Res + Rev Tape */
+    {"SYMBIOSIS PREAMP", 2, 7, 3, 72, 2,
+     {31, 38, 45, 49, 54, 59}, {0.20f, 0.24f, 0.28f, 0.22f, 0.26f, 0.30f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+     {0.74f, 0.70f, 0.66f, 0.62f, 0.58f, 0.54f},
+     {2, 5}, {0, 1}, {0.24f, 0.28f}, {0.58f, 0.54f}, {1, 1}, {2, 5}, {{0, 3, 6, 9, 11}, {10, 6, 4, 9, 2}},
+     {0.48f, 0.54f}, {0.46f, 0.48f}, {3, 0}, 0.40f, 0.42f,
+     0.08f, 0, 0.68f, 10, 0.70f, 0.86f, 0.56f, 0.62f,
+     0.80f, 0.10f, 0.36f, 0.48f, 3, 0.0f},
 
-    {"GLASS NEBULA", 2, 10, 3, 56, 2,
-     {34, 41, 46, 53, 58, 65}, {0.25f, 0.28f, 0.32f, 0.35f, 0.38f, 0.42f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.82f, 0.76f, 0.72f, 0.68f, 0.64f, 0.60f},
-     {3, 5}, {0, 1}, {0.35f, 0.40f}, {0.60f, 0.56f}, {1, 1}, {2, 5}, {{0, 4, 5, 2, 4}, {11, 7, 9, 6, 8}},
-     {0.50f, 0.56f}, {0.30f, 0.34f}, {0, 3}, 0.32f, 0.44f,
-     0.12f, 0, 0.72f, 3, 0.74f, 0.88f, 0.72f, 0.68f,
-     0.0f, 0.22f, 0.36f, 0.48f, 1, 0.0f},
+    /* ================= [EDGE] (13 .. 17: 5 Wildly Distinct Experimental Machines) ================= */
+    /* P14: C# Stacked Fifths Bohlen-Pierce pure dissonant Soviet monolith (NO seqs — pure colossal drone!), Blackhole + Sub Void */
+    {"LYRA MONOLITH", 3, 1, 4, 46, 0,
+     {25, 32, 38, 44, 45, 51}, {0.62f, 0.68f, 0.72f, 0.66f, 0.74f, 0.78f}, {1, 1, 1, 1, 0, 0}, {-1, -1, 0, 0, 1, 1},
+     {0.90f, 0.86f, 0.82f, 0.78f, 0.74f, 0.70f},
+     {2, 4}, {-1, 0}, {0.68f, 0.72f}, {0.58f, 0.54f}, {0, 0}, {1, 5}, {{0, 4, 8, 11, 2}, {9, 5, 1, 7, 3}},
+     {0.44f, 0.50f}, {0.72f, 0.76f}, {3, 1}, 0.80f, 0.64f,
+     0.34f, 1, 0.56f, 2, 0.74f, 0.94f, 0.56f, 0.50f,
+     0.0f, 0.58f, 0.46f, 0.32f, 4, 0.42f},
 
-    {"MATRIX VOYAGER", 2, 7, 2, 66, 0,
-     {31, 38, 43, 50, 55, 60}, {0.24f, 0.28f, 0.30f, 0.26f, 0.32f, 0.35f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.82f, 0.78f, 0.74f, 0.70f, 0.66f, 0.62f},
-     {1, 2}, {0, 1}, {0.28f, 0.32f}, {0.64f, 0.60f}, {1, 1}, {2, 4}, {{0, 2, 4, 5, 3}, {7, 9, 11, 8, 6}},
-     {0.46f, 0.52f}, {0.48f, 0.50f}, {3, 3}, 0.46f, 0.42f,
-     0.14f, 0, 0.70f, 4, 0.68f, 0.86f, 0.58f, 0.62f,
-     0.0f, 0.20f, 0.52f, 0.35f, 2, 0.0f},
-
-    {"BIOME EXT FILTER", 2, 2, 2, 60, 0,
-     {38, 45, 50, 57, 62, 69}, {0.22f, 0.26f, 0.30f, 0.24f, 0.28f, 0.32f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.76f, 0.72f, 0.68f, 0.64f, 0.60f, 0.56f},
-     {2, 3}, {0, 1}, {0.40f, 0.45f}, {0.58f, 0.54f}, {1, 1}, {1, 2}, {{0, 2, 3, 5, 4}, {7, 8, 10, 9, 7}},
-     {0.44f, 0.50f}, {0.46f, 0.48f}, {3, 0}, 0.45f, 0.40f,
-     0.10f, 0, 0.68f, 1, 0.66f, 0.84f, 0.52f, 0.58f,
-     0.80f, 0.12f, 0.35f, 0.50f, 3, 0.0f},
-
-    /* ================= [EDGE] (16 .. 23) ================= */
-    {"LYRA MONOLITH", 3, 1, 1, 60, 0,
-     {25, 32, 37, 44, 49, 56}, {0.58f, 0.64f, 0.68f, 0.62f, 0.70f, 0.74f}, {1, 1, 1, 1, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.88f, 0.84f, 0.80f, 0.76f, 0.72f, 0.68f},
-     {2, 4}, {-1, 0}, {0.65f, 0.70f}, {0.68f, 0.64f}, {1, 1}, {1, 5}, {{0, 1, 4, 5, 1}, {8, 7, 10, 6, 7}},
-     {0.46f, 0.52f}, {0.72f, 0.76f}, {3, 1}, 0.78f, 0.62f,
-     0.32f, 1, 0.58f, 2, 0.72f, 0.92f, 0.58f, 0.54f,
-     0.0f, 0.55f, 0.48f, 0.30f, 4, 0.38f},
-
+    /* P15: F Phrygian tritone radioactive cluster + HP/BP screeching random Geiger pulses, RingMod Hall + Lo-Fi Crush */
     {"CHERNOBYL REACTOR", 3, 5, 1, 64, 0,
-     {29, 36, 41, 42, 48, 55}, {0.66f, 0.72f, 0.76f, 0.70f, 0.78f, 0.82f}, {1, 1, 1, 1, 0, 0}, {-1, -1, 0, 0, 1, 1},
+     {29, 35, 41, 42, 48, 54}, {0.66f, 0.72f, 0.76f, 0.70f, 0.78f, 0.82f}, {1, 1, 1, 1, 0, 0}, {-1, -1, 0, 0, 1, 1},
      {0.86f, 0.82f, 0.78f, 0.74f, 0.70f, 0.66f},
-     {3, 2}, {-1, 0}, {0.50f, 0.45f}, {0.66f, 0.62f}, {1, 1}, {5, 3}, {{0, 1, 3, 5, 1}, {7, 8, 11, 9, 6}},
-     {0.40f, 0.48f}, {0.78f, 0.82f}, {1, 3}, 0.84f, 0.68f,
-     0.52f, 1, 0.54f, 2, 0.76f, 0.94f, 0.64f, 0.50f,
-     0.0f, 0.62f, 0.65f, 0.15f, 2, 0.42f},
+     {3, 2}, {-1, 1}, {0.06f, 0.12f}, {0.68f, 0.64f}, {1, 1}, {6, 3}, {{0, 6, 1, 9, 4}, {11, 3, 8, 1, 7}},
+     {0.42f, 0.52f}, {0.80f, 0.84f}, {2, 1}, 0.84f, 0.68f,
+     0.52f, 1, 0.52f, 7, 0.76f, 0.94f, 0.64f, 0.50f,
+     0.0f, 0.62f, 0.68f, 0.12f, 2, 0.42f},
 
-    {"COSMIC HORIZON", 3, 7, 5, 74, 2,
-     {31, 38, 43, 50, 55, 62}, {0.52f, 0.58f, 0.62f, 0.56f, 0.64f, 0.68f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+    /* P16: D Natural Minor screaming acid-industrial 3-vs-5 bassline, extreme op-amp drive & reso, Lo-Fi Crush + Auto-Wah */
+    {"K140UD12 SCREAM", 3, 2, 0, 88, 0,
+     {26, 33, 38, 41, 46, 50}, {0.48f, 0.54f, 0.58f, 0.52f, 0.60f, 0.64f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
      {0.86f, 0.82f, 0.78f, 0.74f, 0.70f, 0.66f},
-     {1, 3}, {0, 1}, {0.22f, 0.28f}, {0.68f, 0.64f}, {1, 1}, {3, 5}, {{0, 2, 3, 5, 4}, {11, 8, 7, 9, 6}},
-     {0.54f, 0.60f}, {0.68f, 0.72f}, {3, 3}, 0.72f, 0.58f,
-     0.28f, 2, 0.68f, 3, 0.74f, 0.92f, 0.76f, 0.62f,
-     0.0f, 0.48f, 0.55f, 0.25f, 4, 0.25f},
+     {0, 2}, {-1, 0}, {0.16f, 0.22f}, {0.74f, 0.70f}, {1, 1}, {3, 4}, {{0, 10, 3, 7, 1}, {11, 6, 9, 2, 5}},
+     {0.40f, 0.48f}, {0.88f, 0.88f}, {1, 3}, 0.90f, 0.64f,
+     0.28f, 1, 0.54f, 8, 0.70f, 0.86f, 0.60f, 0.58f,
+     0.0f, 0.76f, 0.72f, 0.18f, 4, 0.24f},
 
-    {"CYBERPUNK RAIN", 3, 11, 2, 78, 0,
-     {35, 42, 47, 54, 59, 66}, {0.46f, 0.52f, 0.56f, 0.50f, 0.58f, 0.62f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.84f, 0.80f, 0.76f, 0.72f, 0.68f, 0.64f},
-     {0, 3}, {0, 1}, {0.30f, 0.25f}, {0.70f, 0.66f}, {1, 1}, {2, 4}, {{0, 3, 5, 4, 2}, {10, 7, 8, 9, 6}},
-     {0.50f, 0.58f}, {0.64f, 0.68f}, {0, 1}, 0.68f, 0.54f,
-     0.34f, 0, 0.72f, 0, 0.70f, 0.88f, 0.68f, 0.64f,
-     0.0f, 0.40f, 0.50f, 0.35f, 2, 0.0f},
+    /* P17: A Harmonic Minor 126 BPM hyper-fast S&H modular computer bleeps (4-vs-5 with rests), Bell Pitch + Granular */
+    {"S&H ROBOTICS", 3, 9, 5, 126, 0,
+     {33, 40, 48, 56, 64, 71}, {0.38f, 0.44f, 0.48f, 0.42f, 0.50f, 0.54f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
+     {0.78f, 0.74f, 0.70f, 0.66f, 0.62f, 0.58f},
+     {1, 3}, {0, 1}, {0.01f, 0.02f}, {0.74f, 0.70f}, {1, 1}, {3, 6}, {{0, 11, 3, 9, 6}, {10, 2, 8, 4, 11}},
+     {0.52f, 0.58f}, {0.74f, 0.78f}, {3, 2}, 0.72f, 0.58f,
+     0.24f, 1, 0.58f, 14, 0.68f, 0.82f, 0.56f, 0.68f,
+     0.0f, 0.65f, 0.88f, 0.04f, 2, 0.0f},
 
-    {"K140UD12 SCREAM", 3, 2, 1, 84, 0,
-     {26, 33, 38, 45, 50, 57}, {0.50f, 0.56f, 0.60f, 0.54f, 0.62f, 0.66f}, {1, 1, 1, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.86f, 0.82f, 0.78f, 0.74f, 0.70f, 0.66f},
-     {2, 3}, {0, 1}, {0.15f, 0.18f}, {0.72f, 0.68f}, {1, 1}, {3, 5}, {{0, 1, 4, 5, 3}, {7, 8, 10, 11, 6}},
-     {0.42f, 0.50f}, {0.86f, 0.88f}, {1, 3}, 0.88f, 0.64f,
-     0.30f, 1, 0.56f, 4, 0.68f, 0.88f, 0.62f, 0.58f,
-     0.0f, 0.78f, 0.72f, 0.18f, 4, 0.30f},
-
-    {"S&H ROBOTICS", 3, 9, 5, 108, 0,
-     {33, 40, 45, 52, 57, 64}, {0.42f, 0.48f, 0.52f, 0.46f, 0.54f, 0.58f}, {1, 1, 0, 0, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.80f, 0.76f, 0.72f, 0.68f, 0.64f, 0.60f},
-     {1, 3}, {0, 1}, {0.05f, 0.08f}, {0.72f, 0.68f}, {1, 1}, {3, 5}, {{0, 3, 4, 5, 2}, {7, 10, 11, 8, 6}},
-     {0.48f, 0.54f}, {0.74f, 0.76f}, {3, 2}, 0.72f, 0.58f,
-     0.26f, 1, 0.60f, 1, 0.66f, 0.82f, 0.54f, 0.66f,
-     0.0f, 0.65f, 0.85f, 0.06f, 2, 0.0f},
-
-    {"CORONA FLARE XMOD", 3, 4, 1, 72, 1,
-     {28, 35, 40, 47, 52, 59}, {0.62f, 0.68f, 0.72f, 0.66f, 0.74f, 0.78f}, {1, 1, 1, 1, 0, 0}, {-1, -1, 0, 0, 1, 1},
+    /* P18: E Dorian ferocious Audio-Rate LFO (16x) + 90% V4<>V5 cross-mod plasma storm, Auto-Wah + RingMod Hall */
+    {"CORONA FLARE XMOD", 3, 4, 2, 76, 1,
+     {28, 35, 42, 43, 50, 57}, {0.60f, 0.66f, 0.70f, 0.64f, 0.72f, 0.76f}, {1, 1, 1, 1, 0, 0}, {-1, -1, 0, 0, 1, 1},
      {0.88f, 0.84f, 0.80f, 0.76f, 0.72f, 0.68f},
-     {3, 4}, {-1, 1}, {0.35f, 0.40f}, {0.70f, 0.66f}, {1, 1}, {2, 5}, {{0, 1, 3, 5, 4}, {7, 8, 10, 11, 9}},
-     {0.46f, 0.54f}, {0.76f, 0.80f}, {3, 1}, 0.82f, 0.66f,
-     0.38f, 2, 0.62f, 5, 0.76f, 0.94f, 0.72f, 0.52f,
-     0.0f, 0.88f, 0.60f, 0.25f, 4, 0.48f},
-
-    {"ENTROPY OVERDRIVE", 3, 0, 1, 80, 0,
-     {24, 31, 36, 43, 48, 55}, {0.54f, 0.60f, 0.64f, 0.58f, 0.66f, 0.70f}, {1, 1, 1, 1, 0, 0}, {-1, -1, 0, 0, 1, 1},
-     {0.84f, 0.80f, 0.76f, 0.72f, 0.68f, 0.64f},
-     {2, 3}, {-1, 0}, {0.25f, 0.30f}, {0.68f, 0.64f}, {1, 1}, {2, 3}, {{0, 1, 3, 4, 1}, {6, 7, 9, 10, 7}},
-     {0.42f, 0.48f}, {0.80f, 0.84f}, {3, 1}, 0.86f, 0.60f,
-     0.25f, 1, 0.58f, 5, 0.74f, 0.92f, 0.68f, 0.54f,
-     0.95f, 0.50f, 0.55f, 0.28f, 3, 0.22f}
+     {3, 4}, {-1, 1}, {0.32f, 0.38f}, {0.72f, 0.68f}, {1, 1}, {2, 5}, {{0, 6, 11, 4, 9}, {11, 5, 2, 8, 3}},
+     {0.46f, 0.54f}, {0.78f, 0.82f}, {3, 1}, 0.84f, 0.68f,
+     0.38f, 2, 0.62f, 13, 0.76f, 0.94f, 0.72f, 0.52f,
+     0.0f, 0.90f, 0.64f, 0.22f, 4, 0.44f}
 };
 
 /* Large DSP Delay/Reverb/Dual-Core Buffers in .pool SRAM (336 KiB region on M-VAVE FM-1) */
@@ -1292,25 +1164,66 @@ void helios_load_patch(uint32_t idx)
     S.vcf_link     = (p->vcf_mode[0] == p->vcf_mode[1]) ? 1u : 0u;
     S.spring_mix   = (p->vibe == 3u) ? 0.34f : (S.patch == 13u) ? 0.26f : (p->vibe == 1u) ? 0.14f : 0.22f;
     S.spring_decay = 0.55f;
-    /* Pure Analog Warmth Studio Finish applied to ALL 20 CALM presets (P01..P20) — zero brassiness! */
+    /* Distinct Studio Finish & Polymetric / Rest Character per CALM Preset (P01..P08) */
     if (p->vibe == 1u) {
-        int is_sub_bliss = (S.patch >= 16u && S.patch <= 19u); /* P17..P20 Ultra-Warm Sub-Heavy Bliss */
+        static const float CALM_MORPH[8] = { 0.34f, 0.46f, 0.26f, 0.42f, 0.22f, 0.52f, 0.38f, 0.30f };
+        int is_sub_bliss = (S.patch == 1u || S.patch == 5u); /* STONE IN FOCUS & DEEP WOOL SUB */
         for (i = 0; i < HL_NDRONE; i++) {
-            S.drone[i].wave_morph = is_sub_bliss ? 0.44f : 0.36f; /* Pure velvet TRI/SAW blend — never harsh! */
-            S.drone[i].attack     = 0.74f;
-            S.drone[i].release    = 0.86f;
+            S.drone[i].wave_morph = CALM_MORPH[S.patch & 7u];
+            S.drone[i].attack     = is_sub_bliss ? 0.84f : 0.68f;
+            S.drone[i].release    = is_sub_bliss ? 0.92f : 0.82f;
         }
-        S.master_tape = is_sub_bliss ? 0.40f : 0.34f;
-        S.master_tilt = is_sub_bliss ? -0.44f : -0.26f; /* Heavy warm low-end, silky rolled-off highs */
+        S.master_tape = is_sub_bliss ? 0.42f : (S.patch == 3u) ? 0.48f : 0.30f;
+        S.master_tilt = is_sub_bliss ? -0.44f : (S.patch == 2u || S.patch == 4u) ? -0.10f : -0.24f;
         S.master_hpf  = 0.0f;
-        S.tuning      = (S.patch == 6u || S.patch == 8u || S.patch == 14u) ? 1u : 0u; /* Just Intonation */
-        if (S.patch == 10u) { S.mel[0].seq_len = 3u; S.mel[1].seq_len = 5u; } /* AIRPORT TAPE 1/1 polymetric 3 vs 5 */
-        if (S.patch == 15u) { S.mel[0].seq_len = 4u; S.mel[1].seq_len = 5u; } /* DISCREET LOOP polymetric 4 vs 5 */
+        S.tuning      = (S.patch == 1u || S.patch == 2u) ? 1u : (S.patch == 4u) ? 2u : 0u; /* Just / Pyth / 12-TET */
+        if (S.patch == 2u) { /* AIRPORT TAPE 1/1: polymetric 3 vs 5 with sparse rests */
+            S.mel[0].seq_len = 3u; S.mel[1].seq_len = 5u;
+            S.mel[1].step_gate[1] = 0u; S.mel[1].step_gate[3] = 0u;
+        } else if (S.patch == 4u) { /* KYOTO RAIN BELLS: 4 vs 5 sparse Japanese chime rests */
+            S.mel[0].seq_len = 4u; S.mel[1].seq_len = 5u;
+            S.mel[0].step_gate[2] = 0u; S.mel[1].step_gate[1] = 0u; S.mel[1].step_gate[4] = 0u;
+        } else if (S.patch == 5u) { /* DEEP WOOL SUB: slow sparse bass rests */
+            S.mel[0].seq_len = 4u; S.mel[1].seq_len = 3u;
+            S.mel[0].step_gate[3] = 0u;
+        } else if (S.patch == 6u) { /* PHRYGIAN INCENSE: breathing melodic pauses */
+            S.mel[0].step_gate[3] = 0u; S.mel[1].step_gate[2] = 0u;
+        } else if (S.patch == 7u) { /* FLOATING WATER: rippling 4 vs 5 counter-rhythm */
+            S.mel[0].seq_len = 4u; S.mel[1].seq_len = 5u;
+            S.mel[0].step_gate[1] = 0u;
+        }
     } else {
-        S.master_tape = 0.0f;
-        S.master_tilt = 0.0f;
+        /* Distinct Drone Wave Morph, Melodic Envelopes, Polymeters, Tunings, Audio-Rate LFO & Dual-Cart Stacks for LUSH (8..12) & EDGE (13..17)! */
+        static const float LE_MORPH[10] = { 0.18f, 0.62f, 0.08f, 0.80f, 0.45f, 0.88f, 0.25f, 0.05f, 0.95f, 0.55f };
+        unsigned le = (S.patch >= 8u && S.patch < 18u) ? (S.patch - 8u) : 0u;
+        for (i = 0; i < HL_NDRONE; i++) S.drone[i].wave_morph = LE_MORPH[le];
+        S.master_tape = (S.patch == 8u || S.patch == 15u) ? 0.28f : 0.0f;
+        S.master_tilt = (S.patch == 14u || S.patch == 16u) ? 0.18f : 0.0f;
         S.master_hpf  = 0.0f;
-        S.tuning      = 0u;
+        S.tuning      = (S.patch == 9u) ? 4u : (S.patch == 13u) ? 3u : 0u; /* Maqam on DESERT MIRAGE, Bohlen-Pierce on LYRA MONOLITH */
+        if (S.patch == 8u) { /* NEON RAIN 82: long Vangelis brass swells + solo V4 lead w/ rest */
+            S.mel[0].attack = 0.38f; S.mel[0].release = 0.78f; S.mel[0].seq_len = 4u; S.mel[0].step_gate[2] = 0u;
+            S.mel[1].hold = 0u;
+        } else if (S.patch == 9u) { /* DESERT MIRAGE: breathing Maqam rests */
+            S.mel[0].step_gate[3] = 0u; S.mel[1].step_gate[1] = 0u;
+        } else if (S.patch == 10u) { /* BERLIN SEQUENCER: ultra-snappy staccato 5-vs-4 analog plucks */
+            S.mel[0].attack = 0.01f; S.mel[0].release = 0.16f; S.mel[0].step_acc[2] = 1u;
+            S.mel[1].attack = 0.01f; S.mel[1].release = 0.14f; S.mel[1].seq_len = 4u; S.mel[1].step_gate[3] = 0u;
+        } else if (S.patch == 11u) { /* GLASS CATHEDRAL: slow sparse organ chimes */
+            S.mel[0].attack = 0.32f; S.mel[0].release = 0.85f; S.mel[0].step_gate[2] = 0u;
+            S.mel[1].attack = 0.04f; S.mel[1].release = 0.80f; S.mel[1].step_gate[1] = 0u; S.mel[1].step_gate[4] = 0u;
+        } else if (S.patch == 12u) { /* SYMBIOSIS PREAMP: 3-vs-5 Lydian shimmer */
+            S.mel[0].seq_len = 3u; S.mel[1].seq_len = 5u; S.mel[1].step_gate[2] = 0u;
+        } else if (S.patch == 14u) { /* CHERNOBYL REACTOR: snappy radioactive Geiger bursts */
+            S.mel[0].attack = 0.01f; S.mel[0].release = 0.18f; S.mel[0].step_gate[2] = 0u; S.mel[0].step_gate[4] = 0u;
+            S.mel[1].attack = 0.01f; S.mel[1].release = 0.12f; S.mel[1].step_gate[1] = 0u;
+        } else if (S.patch == 15u) { /* K140UD12 SCREAM: 3-vs-5 industrial acid line */
+            S.mel[0].attack = 0.01f; S.mel[0].release = 0.20f; S.mel[0].seq_len = 3u; S.mel[0].step_acc[1] = 1u;
+            S.mel[1].attack = 0.02f; S.mel[1].release = 0.22f; S.mel[1].step_gate[3] = 0u;
+        } else if (S.patch == 16u) { /* S&H ROBOTICS: razor-sharp 4-vs-5 computer bleeps */
+            S.mel[0].attack = 0.005f; S.mel[0].release = 0.09f; S.mel[0].seq_len = 4u; S.mel[0].step_gate[2] = 0u;
+            S.mel[1].attack = 0.005f; S.mel[1].release = 0.08f; S.mel[1].step_gate[1] = 0u; S.mel[1].step_gate[3] = 0u;
+        }
     }
     S.noise_lvl    = p->noise_lvl;
     S.noise_mode   = p->noise_mode;
@@ -1320,8 +1233,18 @@ void helios_load_patch(uint32_t idx)
     S.joy_rec_state = 0u;
     S.cart_type    = p->cart_type % HL_NCART;
     S.cart_mask    = (uint16_t)(1u << (S.cart_type & 15u));
+    /* Showcase Dual-Cartridge Stacks & Audio-Rate LFO on signature LUSH & EDGE patches */
+    if (S.patch == 8u)       S.cart_mask |= (1u << 1);  /* NEON RAIN 82: Shimmer + Space Echo */
+    else if (S.patch == 9u)  S.cart_mask |= (1u << 15); /* DESERT MIRAGE: Blackhole + Tape Wash */
+    else if (S.patch == 11u) S.cart_mask |= (1u << 3);  /* GLASS CATHEDRAL: Phaser+Rev + Granular */
+    else if (S.patch == 12u) S.cart_mask |= (1u << 6);  /* SYMBIOSIS PREAMP: Spectral Res + Reverse Tape */
+    else if (S.patch == 13u) S.cart_mask |= (1u << 5);  /* LYRA MONOLITH: Blackhole + Sub Void */
+    else if (S.patch == 14u) S.cart_mask |= (1u << 8);  /* CHERNOBYL REACTOR: RingMod Hall + Lo-Fi Crush */
+    else if (S.patch == 15u) S.cart_mask |= (1u << 13); /* K140UD12 SCREAM: Lo-Fi Crush + Auto-Wah */
+    else if (S.patch == 16u) S.cart_mask |= (1u << 3);  /* S&H ROBOTICS: Bell Pitch + Granular */
+    else if (S.patch == 17u) S.cart_mask |= (1u << 7);  /* CORONA FLARE XMOD: Auto-Wah + RingMod Hall */
     S.cart_freeze  = 0u;
-    S.lfo_fast     = 0u;
+    S.lfo_fast     = (S.patch == 17u) ? 1u : 0u; /* Audio-Rate 16x LFO on CORONA FLARE XMOD */
     S.cart_mix     = p->cart_mix;
     S.cart_decay   = p->cart_decay;
     S.cart_shimmer = p->cart_shimmer;
@@ -2614,10 +2537,11 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
                     for (v = 0; v < HL_NDRONE; v++) {
                         S.drone[v].note = br_clampf((float)(bass_base + (int)ch[v]), 28.0f, 76.0f);
                     }
-                    /* Update V4 & V5 5-step sequences into a sparkling arpeggio of the active chord! */
-                    for (k = 0; k < HL_NSTEPS; k++) {
-                        S.mel[0].steps[k] = ARP_DEG[ci][k] % HL_NPLATES;
-                        S.mel[1].steps[k] = ARP_DEG[ci][4u - k] % HL_NPLATES; /* Counter-arpeggio on Right! */
+                    /* Gently evolve ONE melodic step at a time so each CALM preset preserves its own unique contour & rests! */
+                    for (k = 0; k < HL_NMEL; k++) {
+                        uint32_t stp = (r >> (k * 6u)) % HL_NSTEPS;
+                        uint8_t cand = ARP_DEG[ci][(stp + ((r >> (12u + k * 4u)) & 3u)) % 5u];
+                        S.mel[k].steps[stp] = (uint8_t)((cand + (k ? 2u : 0u)) % HL_NPLATES);
                     }
                     D.ev_prog_step++;
                 } else {
@@ -2665,9 +2589,9 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
             D.ev_timer = 0.0f;
 
             if (roll < w_com) {
-                /* COMMON: Organic breathing around baseline (Ultra-Warm ceiling on P17..P20 & all CALM patches!) */
+                /* COMMON: Organic breathing around baseline (Ultra-Warm ceiling on sub-bliss & all CALM patches!) */
                 uint32_t dv = (r >> 10) % HL_NDRONE;
-                int is_sub_bliss = (S.patch >= 16u && S.patch <= 19u);
+                int is_sub_bliss = (S.patch == 1u || S.patch == 5u);
                 float max_cut = is_sub_bliss ? 0.32f : warm_guard ? 0.46f : 0.88f;
                 float min_cut = is_sub_bliss ? 0.16f : warm_guard ? 0.20f : 0.14f;
                 float max_res = is_sub_bliss ? 0.24f : warm_guard ? 0.36f : 0.82f;

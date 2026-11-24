@@ -56,8 +56,8 @@ Captured directly from Entropy Helios v1.2 firmware — every module button smoo
 </p>
 
 - **Two Top-Level Operating Modes (`SEL + REC` 1-Tap Toggle)**:
-  - **`ENTROPY` Mode (Default at boot)**: Full generative ambient engine (`DRIFT` / `CINEMA` / `WILD`) with 36 mood-grouped factory presets (`P01–P20 [CALM]`, `P21–P28 [LUSH]`, `P29–P36 [EDGE]`) + **8 Entropy User Slots (`E01–E08`)** starting as clean `INIT` templates.
-  - **`PURE HW` Mode (Zero Entropy)**: All 36 generative presets disappear, leaving **16 dedicated Blank `INIT` Hardware Slots (`H01–H16`)** with zero autonomous drift — pure hands-on hardware patching from scratch.
+  - **`ENTROPY` Mode (Default at boot)**: Full generative ambient engine (`DRIFT` / `CINEMA` / `WILD`) with 18 handcrafted, radically diverse presets (`P01–P08 [CALM]`, `P09–P13 [LUSH]`, `P14–P18 [EDGE]`) + **8 Entropy User Slots (`E01–E08`)** starting as clean `INIT` templates.
+  - **`PURE HW` Mode (Zero Entropy)**: All 18 generative presets disappear, leaving **16 dedicated Blank `INIT` Hardware Slots (`H01–H16`)** with zero autonomous drift — pure hands-on hardware patching from scratch.
 - **Dual-Core Asymmetric SMP Engine (`Core 0` + `Core 1`)**: 6 swarm drone voices (30 oscillators) with per-drone adjustable Glide + 2 melodic voices + dual analog-modeled op-amp VCFs + 8-voice polyphonic play mode with velocity & per-key polyphonic aftertouch.
 - **16 Stackable FX Cartridges + 3-Spring Tank**: Load any combination of 16 effects simultaneously (`SHIMMER HALL`, `SPACE ECHO`, `BLACKHOLE`, `GRANULAR`, `PHASER+REV`, `SUB VOID`, `REVERSE TAPE`, `RINGMOD HALL`, `LO-FI CRUSH`, `CHORUS+PITCH`, `SPECTRAL RES`, `INF FREEZE`, `VIBROTREM`, `AUTO-WAH`, `BELL PITCH`, `TAPE WASH`) with independent per-cartridge **Level** and **Tone**.
 - **Full-Screen Tactile Hardware UI**: 5 anodized chassis finishes (`BLACK`, `CREAM`, `AMBER YEL`, `COBALT`, `OLIVE` — persisted to flash), 3D color-coded knobs, 360 ms expand/collapse module zoom animation, unmistakable `ENT` vs `PURE HW` header badging, and a live-animated P31 phosphor-green CRT boot splash.
