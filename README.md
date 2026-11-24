@@ -35,6 +35,20 @@ Plug your M-VAVE FM-1 into Chrome or Edge via USB-C and launch the **[Entropy He
 
 ---
 
+## FM-1 On-Device 240×240 Hardware UI (All 5 Anodized Finishes)
+
+Captured directly from Entropy Helios v1.2 firmware — every module button smoothly expands into full-screen tactile hardware views with 3D color-coded knobs, live filter curves, magnetic FX cartridges, and `ENT` / `PURE HW` badging:
+
+| Home Console (Obsidian Black) | Drone Bank L (Amber Yellow) | Dual Analog VCF (Cobalt Blue) |
+| :---: | :---: | :---: |
+| ![FM-1 Home Console](docs/img/fm1-home-black.png) | ![FM-1 Drone Bank L](docs/img/fm1-drone-amber.png) | ![FM-1 Dual Analog VCF](docs/img/fm1-vcf-cobalt.png) |
+
+| 16-Cart Stack FX (Vintage Cream) | 8×8 CV Pin Matrix (Tactical Olive) | PURE HW Mode (`H01–H16`) |
+| :---: | :---: | :---: |
+| ![FM-1 16-Cart Stack FX](docs/img/fm1-cart-cream.png) | ![FM-1 8x8 CV Pin Matrix](docs/img/fm1-matrix-olive.png) | ![FM-1 PURE HW Mode](docs/img/fm1-pure-black.png) |
+
+---
+
 ## Hardware Highlights
 
 <p align="center">

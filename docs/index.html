@@ -176,6 +176,27 @@ h2{margin:0 0 12px; font-size:clamp(26px,3.2vw,36px); letter-spacing:-0.01em;}
 .tpill i{width:10px; height:10px; border-radius:50%; display:inline-block; border:1px solid rgba(255,255,255,.35);}
 .grid4{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
 
+/* On-Device 240x240 FM-1 Hardware Screen Gallery */
+.hw-gallery{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px;
+}
+.hw-shot{
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:14px; text-align:center;
+  box-shadow:0 12px 32px rgba(0,0,0,0.28);
+}
+.hw-bezel{
+  background:#07080a; border:2px solid #2b2c32; border-radius:10px;
+  padding:8px; display:inline-block; width:100%; max-width:256px;
+  box-shadow:inset 0 2px 10px rgba(0,0,0,0.85);
+}
+.hw-bezel img{
+  width:240px; height:240px; max-width:100%; height:auto; display:block; margin:0 auto;
+  border-radius:4px; image-rendering:pixelated;
+}
+.hw-shot h3{margin:12px 0 4px; font-size:15px;}
+.hw-shot p{margin:0; font-size:13px; color:var(--muted);}
+
 .grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:18px;}
 .card{
   background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px;
@@ -220,6 +241,7 @@ footer{padding:36px 0; text-align:center; font-size:13px; color:var(--muted);}
     <div class="brand"><span class="brand-dot"></span> ENTROPY HELIOS</div>
     <div class="nav-links">
       <a href="#studio">WebMIDI Studio</a>
+      <a href="#screens">FM-1 Screens</a>
       <a href="#features">Features</a>
       <a href="#fx">16 Stackable FX</a>
       <a href="#guide">Quick Guide</a>
@@ -342,6 +364,47 @@ footer{padding:36px 0; text-align:center; font-size:13px; color:var(--muted);}
         <span class="tag mono">24-SLOT LIBRARIAN</span>
         <h3>Full Flash Backup &amp; Restore</h3>
         <p>Save, load, and export all 8 Entropy user slots (<code>E01–E08</code>) and all 16 Pure HW slots (<code>H01–H16</code>) into a single portable <code>.json</code> backup file with one click.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="wrap">
+    <div class="sec-eyebrow mono">240&times;240 RGB565 IPS Hardware UI</div>
+    <h2>Photorealistic Anodized Modules — Right on the FM-1 Screen.</h2>
+    <p class="sec-lead">Captured directly from Entropy Helios v1.2 firmware. Press any module button to zoom into full-screen tactile hardware views with 3D color-coded knobs, live filter curves, magnetic FX cartridges, and all 5 anodized finishes.</p>
+
+    <div class="hw-gallery">
+      <div class="hw-shot">
+        <div class="hw-bezel"><img src="img/fm1-home-black.png" alt="FM-1 Home Console in Obsidian Black"></div>
+        <h3>Home Console <span class="mono" style="color:var(--accent);font-size:12px;">BLACK</span></h3>
+        <p>Live CRT waveform, 6 drone mini-scopes, dual 5-step sequencers, 12 copper touch plates &amp; <code>ENT:DRIFT</code>.</p>
+      </div>
+      <div class="hw-shot">
+        <div class="hw-bezel"><img src="img/fm1-drone-amber.png" alt="FM-1 Drone Bank L in Amber Yellow"></div>
+        <h3>Drone Bank L <span class="mono" style="color:var(--accent);font-size:12px;">AMBER</span></h3>
+        <p>5-saw spread &amp; wave-morph visualizer, per-voice toggle switches, blue 3D knobs &amp; per-drone Glide.</p>
+      </div>
+      <div class="hw-shot">
+        <div class="hw-bezel"><img src="img/fm1-vcf-cobalt.png" alt="FM-1 Dual Analog VCF in Cobalt Blue"></div>
+        <h3>Dual Analog VCF <span class="mono" style="color:var(--accent);font-size:12px;">COBALT</span></h3>
+        <p>Real-time stereo op-amp filter response curve, L/R Link toggle, resonance, overdrive &amp; 4 filter modes.</p>
+      </div>
+      <div class="hw-shot">
+        <div class="hw-bezel"><img src="img/fm1-cart-cream.png" alt="FM-1 16-Cartridge Stack FX in Vintage Cream"></div>
+        <h3>16-Cart Stack FX <span class="mono" style="color:var(--accent);font-size:12px;">CREAM</span></h3>
+        <p>Gold-edge magnetic FX cartridge, 16-slot stack rack LEDs, and per-cartridge ON/OFF, Level &amp; Tone.</p>
+      </div>
+      <div class="hw-shot">
+        <div class="hw-bezel"><img src="img/fm1-matrix-olive.png" alt="FM-1 8x8 Modular CV Pin Matrix in Tactical Olive"></div>
+        <h3>8&times;8 CV Pin Matrix <span class="mono" style="color:var(--accent);font-size:12px;">OLIVE</span></h3>
+        <p>Live source meters for LFO 1/2, S&amp;H, Slew, Env Follower, Joystick X/Y &amp; Plate Pressure patched to 8 destinations.</p>
+      </div>
+      <div class="hw-shot">
+        <div class="hw-bezel"><img src="img/fm1-pure-black.png" alt="FM-1 PURE HW Mode H01 INIT Slot"></div>
+        <h3>PURE HW Mode <span class="mono" style="color:var(--accent);font-size:12px;">H01–H16</span></h3>
+        <p>1-tap <code>SEL + REC</code> hides all generative presets and exposes 16 blank <code>INIT</code> hardware slots with zero drift.</p>
       </div>
     </div>
   </div>
