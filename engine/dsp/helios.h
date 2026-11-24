@@ -224,6 +224,7 @@ void helios_panic(void);
 
 /* Dual-Core SMP API (Core 0 + Core 1) */
 void helios_core2_mode(int mode); /* 0 = single-core, 1 = hardware Core 1, 2 = host dual-core sim */
+void helios_core2_hooks(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void)); /* fm1-base cpu2 job dispatch */
 void helios_core2_work(void);     /* Polled on Core 1 via plat_cpu2_job(helios_core2_work) */
 void helios_profile_clock(uint32_t (*clk)(void));
 void helios_core2_stats(uint32_t *v_jobs, uint32_t *fx_jobs, uint32_t *late, uint32_t *lost,

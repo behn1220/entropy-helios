@@ -93,6 +93,14 @@ static void hl_probe_fn(void)
     hl_probe_y = hl_probe_x * 1.5f + 0.25f;
     hl_probe_ok = 1u;
 }
+#ifdef PLAT_TICKS_PER_US
+static void hl_probe_u32(uint32_t arg)
+{
+    (void)arg;
+    hl_probe_fn();
+}
+#endif
+int app_spk_muted(void) { return ui_spk_mute != 0u; }
 
 /* ---- Persistent Flash Save / Load (OBJ_SETTINGS + 8 Entropy Slots E01..E08 + 16 Pure HW Slots H01..H16) ---- */
 #define HL_SAVE_MAGIC 0x484C3131u /* "HL11" (v1.1: PURE/ENTROPY dual-mode + full per-voice INIT save) */
@@ -737,10 +745,12 @@ int app_sysex(const uint8_t *p, uint32_t n)
             case 49: st.vcf_mode[1] = val & 3u; st.vcf_link = 0u; break;
             case 50: helios_pin_preset_step(1); hl_sysex_send_state(); return 1;
             case 51:
-                ui_usb_full = (val == 1u) ? 1u : 0u;
+                ui_usb_full = (val >= 1u) ? 1u : 0u;
                 ui_spk_mute = (val == 2u) ? 1u : 0u;
                 plat_usb_audio_full(ui_usb_full);
+#ifndef PLAT_TICKS_PER_US
                 plat_speaker(!ui_spk_mute);
+#endif
                 return 1;
             case 52: helios_cycle_joy_rec(); return 1;
             case 53: st.key_mode = val % 3u; break; /* 0=SPLIT 6+6, 1=DUAL 12, 2=POLY 2V */
@@ -974,7 +984,31 @@ void app_init(void)
     helios_init(44100.0f);
     touch_on(1);
 
-#ifndef PLAT_HOST
+#ifdef PLAT_TICKS_PER_US
+#if FM1B_CPU2
+    {
+        int r = plat_cpu2_set(1);
+        hl_cpu2_state = (r == 0 && plat_cpu2_on()) ? 1u : (plat_cpu2_barred() ? 3u : 2u);
+    }
+    if (hl_cpu2_state == 1u) {
+        hl_probe_x = 2.0f;
+        hl_probe_ok = 0u;
+        if (plat_cpu2_run(hl_probe_u32, 0u) && plat_cpu2_wait() == 0 &&
+            hl_probe_ok && hl_probe_y == 3.25f) {
+            helios_profile_clock(plat_ticks24);
+            helios_core2_hooks(plat_cpu2_run, plat_cpu2_wait);
+            helios_core2_mode(1);
+        } else {
+            hl_cpu2_state = 4u;
+            helios_core2_mode(0);
+        }
+    }
+#else
+    hl_cpu2_state = 3u;
+    helios_profile_clock(plat_ticks24);
+    helios_core2_mode(0);
+#endif
+#elif !defined(PLAT_HOST)
     {
         int r = plat_cpu2_start(500u);
         hl_cpu2_state = (r == 0) ? 1u : (r == -2) ? 3u : 2u;
@@ -1041,8 +1075,17 @@ int app_log_line(unsigned k, char *b)
         hl_cat_u(b, (unsigned)md);
         hl_cat(b, " load ");
         hl_cat_u(b, c1p);
+#ifdef PLAT_TICKS_PER_US
+        hl_cat(b, "% stk ");
+#if FM1B_CPU2
+        hl_cat_u(b, plat_cpu2_stack());
+#else
+        hl_cat_u(b, 0u);
+#endif
+#else
         hl_cat(b, "% beat ");
         hl_cat_u(b, plat_cpu2_beat());
+#endif
         return 1;
     }
     hl_cat(b, "c1 vjobs ");
@@ -1055,6 +1098,15 @@ int app_log_line(unsigned k, char *b)
     hl_cat_u(b, ls);
     return 1;
 }
+
+#ifdef PLAT_TICKS_PER_US
+void app_log(void (*line)(const char *t))
+{
+    char b[48];
+    if (app_log_line(0u, b)) line(b);
+    if (app_log_line(1u, b)) line(b);
+}
+#endif
 
 /* ---- Parameter Adjust & Readout for the 4 Physical Encoders (K1 .. K4) on Every Page ---- */
 static void hl_knob_info(const helios_state_t *st, unsigned page, unsigned knob,
@@ -1821,7 +1873,9 @@ static void hl_turn_knob(unsigned page, unsigned knob, int32_t d)
                 ui_usb_full = (m >= 1) ? 1u : 0u;
                 ui_spk_mute = (m == 2) ? 1u : 0u;
                 plat_usb_audio_full(ui_usb_full);
+#ifndef PLAT_TICKS_PER_US
                 plat_speaker(!ui_spk_mute);
+#endif
             } else {
                 st.bpm = (uint8_t)clamp((int32_t)st.bpm + d, 30, 160);
                 helios_set_state(&st);

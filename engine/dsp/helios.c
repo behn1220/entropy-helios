@@ -411,6 +411,8 @@ static int hl_cs_mode;                  /* 0 = single-core, 1 = hardware Core 1,
 static uint32_t hl_cs_have;
 static volatile uint32_t hl_v_jobs, hl_fx_jobs, hl_cs_late, hl_cs_lost;
 static volatile uint32_t hl_c1_busy, hl_c0_samples;
+static int (*hl_c2_run)(void (*)(uint32_t), uint32_t);
+static int (*hl_c2_wait)(void);
 
 /* Shared Per-Block Parameters for Core 0 & Core 1 Parallel Render */
 static struct {
@@ -1116,7 +1118,7 @@ static void hl_render_fx_core(const float *in_l, const float *in_r, float *out_l
     S.spring_kick_env = D.spr_kick_imp;
 }
 
-/* Polled on Core 1 (via plat_cpu2_job(helios_core2_work)) or run inline in Mode 2 */
+/* Polled on Core 1 (via plat_cpu2_job or plat_cpu2_run) or run inline in Mode 2 */
 void helios_core2_work(void)
 {
     uint32_t g = hl_cs_go, t0 = 0;
@@ -1136,6 +1138,18 @@ void helios_core2_work(void)
     }
     __asm__ volatile("" ::: "memory");
     hl_cs_go = 0u;
+}
+
+static void hl_c2_tramp(uint32_t arg)
+{
+    hl_cs_go = arg;
+    helios_core2_work();
+}
+
+void helios_core2_hooks(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void))
+{
+    hl_c2_run  = run;
+    hl_c2_wait = wait;
 }
 
 static int hl_cs_idle(void)
@@ -3065,139 +3079,182 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
     }
 
     /* 5. STAGE A: Dual-Core Parallel Synthesis of Left Bank (Core 0) & Right Bank (Core 1) */
-    if (hl_cs_mode && hl_cs_idle()) {
-        hl_v_jobs++;
-        __asm__ volatile("" ::: "memory");
-        hl_cs_go = 2u; /* Dispatch Right Bank (V6..V8 + V5 + Analog R) to Core 1 */
-        if (hl_cs_mode == 2)
-            helios_core2_work();
-        /* Simultaneously render Left Bank (V1..V3 + V4 + Analog L) on Core 0 */
-        hl_render_bank(0u, c0_flt_l, n);
-        if (!hl_cs_idle()) {
-            /* Fallback if Core 1 ever timed out */
+    {
+        int c2_fx_pending = 0;
+        if (hl_cs_mode && hl_c2_run && hl_c2_wait) {
+            if (hl_c2_run(hl_c2_tramp, 2u)) {
+                hl_v_jobs++;
+                hl_render_bank(0u, c0_flt_l, n);
+                if (hl_c2_wait() < 0) {
+                    hl_cs_mode = 0;
+                    hl_cs_have = 0;
+                    hl_cs_lost++;
+                    hl_render_bank(1u, c2_flt_r, n);
+                }
+            } else {
+                hl_render_bank(0u, c0_flt_l, n);
+                hl_render_bank(1u, c2_flt_r, n);
+            }
+        } else if (hl_cs_mode && hl_cs_idle()) {
+            hl_v_jobs++;
+            __asm__ volatile("" ::: "memory");
+            hl_cs_go = 2u; /* Dispatch Right Bank (V6..V8 + V5 + Analog R) to Core 1 */
+            if (hl_cs_mode == 2)
+                helios_core2_work();
+            /* Simultaneously render Left Bank (V1..V3 + V4 + Analog L) on Core 0 */
+            hl_render_bank(0u, c0_flt_l, n);
+            if (!hl_cs_idle()) {
+                /* Fallback if Core 1 ever timed out */
+                hl_render_bank(1u, c2_flt_r, n);
+            }
+        } else {
+            hl_render_bank(0u, c0_flt_l, n);
             hl_render_bank(1u, c2_flt_r, n);
         }
-    } else {
-        hl_render_bank(0u, c0_flt_l, n);
-        hl_render_bank(1u, c2_flt_r, n);
-    }
 
-    /* 6. STAGE B: Pipelined Dual-Core BBD Ensemble Chorus + 8-Line FDN Cartridge Multi-FX on Core 1 */
-    if (hl_cs_mode && hl_cs_idle()) {
-        for (i = 0; i < n; i++) {
-            c2_in_l[i] = c0_flt_l[i];
-            c2_in_r[i] = c2_flt_r[i];
-            if (hl_cs_have) {
-                c0_flt_l[i] = c2_wet_l[i];
-                c2_flt_r[i] = c2_wet_r[i];
-            }
-        }
-        hl_cs_have = 1u;
-        hl_fx_jobs++;
-        __asm__ volatile("" ::: "memory");
-        hl_cs_go = 1u; /* Core 1 crunches BBD Chorus + 8-Line FDN Cartridge FX in parallel with Stage 7 & UI! */
-        if (hl_cs_mode == 2) {
-            helios_core2_work();
+        /* 6. STAGE B: Pipelined Dual-Core BBD Ensemble Chorus + 8-Line FDN Cartridge Multi-FX on Core 1 */
+        if (hl_cs_mode && hl_c2_run && hl_c2_wait) {
             for (i = 0; i < n; i++) {
-                c0_flt_l[i] = c2_wet_l[i];
-                c2_flt_r[i] = c2_wet_r[i];
-            }
-        }
-    } else {
-        hl_cs_have = 0u;
-        hl_render_fx_core(c0_flt_l, c2_flt_r, c0_flt_l, c2_flt_r, n);
-    }
-
-    /* 7. Core 0 Studio Master Stage: Pultec Sub-Bass + Sub-Tightener HPF + Mastering Tilt EQ + Tape Warmth + 16-Band Spectrum + Limiter */
-    {
-        /* 16-band logarithmic SVF band-pass frequencies (70 Hz .. 11.5 kHz, sub-sampled 1:4 = 11.025 kHz) */
-        static const float SPEC_G[16] = {
-            0.038f, 0.052f, 0.071f, 0.096f, 0.130f, 0.174f, 0.232f, 0.306f,
-            0.398f, 0.510f, 0.642f, 0.790f, 0.945f, 1.110f, 1.280f, 1.440f
-        };
-        float hpf_a = (S.master_hpf > 0.005f) ? (0.996f - 0.022f * S.master_hpf) : 0.996f;
-        float tilt  = S.master_tilt;
-        float tape  = S.master_tape;
-        float min_lim_g = 1.0f;
-        float spec_pk[16];
-        for (k = 0; k < 16u; k++) spec_pk[k] = 0.0f;
-
-        for (i = 0; i < n; i++) {
-            float flt_l = c0_flt_l[i], flt_r = c2_flt_r[i];
-            float dcl = flt_l - D.dc_xl + hpf_a * D.dc_yl; D.dc_xl = flt_l; D.dc_yl = fm_flush(dcl);
-            float dcr = flt_r - D.dc_xr + hpf_a * D.dc_yr; D.dc_xr = flt_r; D.dc_yr = fm_flush(dcr);
-            D.xf_lo_l += 0.023f * (dcl - D.xf_lo_l);
-            D.xf_lo_r += 0.023f * (dcr - D.xf_lo_r);
-            float sub_m = (D.xf_lo_l + D.xf_lo_r) * 0.5f;
-            float xsat = 0.38f * br_soft((sub_m + 0.10f * sub_m * sub_m) * 1.8f);
-            float out_l = dcl + 0.48f * sub_m + xsat;
-            float out_r = dcr + 0.48f * sub_m + xsat;
-
-            /* Mastering Tilt EQ (~900 Hz pivot: negative = warm dark, positive = airy bright) */
-            if (tilt > 0.01f || tilt < -0.01f) {
-                D.tilt_l += 0.12f * (out_l - D.tilt_l);
-                D.tilt_r += 0.12f * (out_r - D.tilt_r);
-                float hi_l = out_l - D.tilt_l;
-                float hi_r = out_r - D.tilt_r;
-                out_l += tilt * (0.45f * hi_l - 0.32f * D.tilt_l);
-                out_r += tilt * (0.45f * hi_r - 0.32f * D.tilt_r);
-            }
-
-            /* Analog Tape Warmth / Soft-Clip Saturation */
-            if (tape > 0.005f) {
-                float drv = 1.0f + 2.2f * tape;
-                float tl = br_soft((out_l + 0.06f * out_l * out_l) * drv) / (1.0f + 0.45f * tape);
-                float tr = br_soft((out_r + 0.06f * out_r * out_r) * drv) / (1.0f + 0.45f * tape);
-                out_l = out_l * (1.0f - tape) + tl * tape;
-                out_r = out_r * (1.0f - tape) + tr * tape;
-            }
-
-            float abs_pk = fm_fabsf(out_l) > fm_fabsf(out_r) ? fm_fabsf(out_l) : fm_fabsf(out_r);
-            if (abs_pk > D.lim_env) D.lim_env += 0.25f * (abs_pk - D.lim_env);
-            else                    D.lim_env += 0.0008f * (abs_pk - D.lim_env);
-            float lim_g = D.lim_env > 0.85f ? (0.85f / D.lim_env) : 1.0f;
-            if (lim_g < min_lim_g) min_lim_g = lim_g;
-            out_l = br_soft(out_l * lim_g * 0.95f) * gain;
-            out_r = br_soft(out_r * lim_g * 0.95f) * gain;
-
-            if (fm_fabsf(out_l) > pk_l) pk_l = fm_fabsf(out_l);
-            if (fm_fabsf(out_r) > pk_r) pk_r = fm_fabsf(out_r);
-            if ((i & 3u) == 0u) {
-                float sl = br_soft(dcl * lim_g * 2.2f);
-                float sr = br_soft(dcr * lim_g * 2.2f);
-                S.scope_l[D.scope_w & 63u] = sl;
-                S.scope_r[D.scope_w & 63u] = sr;
-                D.scope_w++;
-                /* Only run 16-Band Spectrum Filterbank when SPECTRUM view is active (1:8 decimated = zero overhead in WAVE/LISSAJOUS!) */
-                if (D.spec_en && (i & 7u) == 0u) {
-                    float sm = (sl + sr) * 0.5f;
-                    for (k = 0; k < 16u; k++) {
-                        float g = SPEC_G[k];
-                        float hp = sm - D.spec_lp[k] - 0.55f * D.spec_bp[k];
-                        D.spec_bp[k] += g * hp;
-                        D.spec_lp[k] += g * D.spec_bp[k];
-                        float a = fm_fabsf(D.spec_bp[k]);
-                        if (a > spec_pk[k]) spec_pk[k] = a;
-                    }
+                c2_in_l[i] = c0_flt_l[i];
+                c2_in_r[i] = c2_flt_r[i];
+                if (hl_cs_have) {
+                    c0_flt_l[i] = c2_wet_l[i];
+                    c2_flt_r[i] = c2_wet_r[i];
                 }
             }
-
-            int32_t ql = (int32_t)(out_l * 8388607.0f);
-            int32_t qr = (int32_t)(out_r * 8388607.0f);
-            if (ql > 8388607) ql = 8388607; else if (ql < -8388607) ql = -8388607;
-            if (qr > 8388607) qr = 8388607; else if (qr < -8388607) qr = -8388607;
-            lr[i * 2u + 0u] = ql;
-            lr[i * 2u + 1u] = qr;
+            if (hl_c2_run(hl_c2_tramp, 1u)) {
+                hl_cs_have = 1u;
+                hl_fx_jobs++;
+                c2_fx_pending = 1;
+            } else {
+                hl_cs_have = 0u;
+                hl_render_fx_core(c2_in_l, c2_in_r, c0_flt_l, c2_flt_r, n);
+            }
+        } else if (hl_cs_mode && hl_cs_idle()) {
+            for (i = 0; i < n; i++) {
+                c2_in_l[i] = c0_flt_l[i];
+                c2_in_r[i] = c2_flt_r[i];
+                if (hl_cs_have) {
+                    c0_flt_l[i] = c2_wet_l[i];
+                    c2_flt_r[i] = c2_wet_r[i];
+                }
+            }
+            hl_cs_have = 1u;
+            hl_fx_jobs++;
+            __asm__ volatile("" ::: "memory");
+            hl_cs_go = 1u; /* Core 1 crunches BBD Chorus + 8-Line FDN Cartridge FX in parallel with Stage 7 & UI! */
+            if (hl_cs_mode == 2) {
+                helios_core2_work();
+                for (i = 0; i < n; i++) {
+                    c0_flt_l[i] = c2_wet_l[i];
+                    c2_flt_r[i] = c2_wet_r[i];
+                }
+            }
+        } else {
+            hl_cs_have = 0u;
+            hl_render_fx_core(c0_flt_l, c2_flt_r, c0_flt_l, c2_flt_r, n);
         }
-        if (D.spec_en) {
-            for (k = 0; k < 16u; k++) {
-                float v_band = br_clampf(spec_pk[k] * 1.9f, 0.0f, 1.0f);
-                D.spec_bp[k] = fm_flush(D.spec_bp[k]);
-                D.spec_lp[k] = fm_flush(D.spec_lp[k]);
-                S.spec[k] = (v_band > S.spec[k]) ? (S.spec[k] * 0.35f + v_band * 0.65f) : (S.spec[k] * 0.86f);
+
+        /* 7. Core 0 Studio Master Stage: Pultec Sub-Bass + Sub-Tightener HPF + Mastering Tilt EQ + Tape Warmth + 16-Band Spectrum + Limiter */
+        {
+            /* 16-band logarithmic SVF band-pass frequencies (70 Hz .. 11.5 kHz, sub-sampled 1:4 = 11.025 kHz) */
+            static const float SPEC_G[16] = {
+                0.038f, 0.052f, 0.071f, 0.096f, 0.130f, 0.174f, 0.232f, 0.306f,
+                0.398f, 0.510f, 0.642f, 0.790f, 0.945f, 1.110f, 1.280f, 1.440f
+            };
+            float hpf_a = (S.master_hpf > 0.005f) ? (0.996f - 0.022f * S.master_hpf) : 0.996f;
+            float tilt  = S.master_tilt;
+            float tape  = S.master_tape;
+            float min_lim_g = 1.0f;
+            float spec_pk[16];
+            for (k = 0; k < 16u; k++) spec_pk[k] = 0.0f;
+
+            for (i = 0; i < n; i++) {
+                float flt_l = c0_flt_l[i], flt_r = c2_flt_r[i];
+                float dcl = flt_l - D.dc_xl + hpf_a * D.dc_yl; D.dc_xl = flt_l; D.dc_yl = fm_flush(dcl);
+                float dcr = flt_r - D.dc_xr + hpf_a * D.dc_yr; D.dc_xr = flt_r; D.dc_yr = fm_flush(dcr);
+                D.xf_lo_l += 0.023f * (dcl - D.xf_lo_l);
+                D.xf_lo_r += 0.023f * (dcr - D.xf_lo_r);
+                float sub_m = (D.xf_lo_l + D.xf_lo_r) * 0.5f;
+                float xsat = 0.38f * br_soft((sub_m + 0.10f * sub_m * sub_m) * 1.8f);
+                float out_l = dcl + 0.48f * sub_m + xsat;
+                float out_r = dcr + 0.48f * sub_m + xsat;
+
+                /* Mastering Tilt EQ (~900 Hz pivot: negative = warm dark, positive = airy bright) */
+                if (tilt > 0.01f || tilt < -0.01f) {
+                    D.tilt_l += 0.12f * (out_l - D.tilt_l);
+                    D.tilt_r += 0.12f * (out_r - D.tilt_r);
+                    float hi_l = out_l - D.tilt_l;
+                    float hi_r = out_r - D.tilt_r;
+                    out_l += tilt * (0.45f * hi_l - 0.32f * D.tilt_l);
+                    out_r += tilt * (0.45f * hi_r - 0.32f * D.tilt_r);
+                }
+
+                /* Analog Tape Warmth / Soft-Clip Saturation */
+                if (tape > 0.005f) {
+                    float drv = 1.0f + 2.2f * tape;
+                    float tl = br_soft((out_l + 0.06f * out_l * out_l) * drv) / (1.0f + 0.45f * tape);
+                    float tr = br_soft((out_r + 0.06f * out_r * out_r) * drv) / (1.0f + 0.45f * tape);
+                    out_l = out_l * (1.0f - tape) + tl * tape;
+                    out_r = out_r * (1.0f - tape) + tr * tape;
+                }
+
+                float abs_pk = fm_fabsf(out_l) > fm_fabsf(out_r) ? fm_fabsf(out_l) : fm_fabsf(out_r);
+                if (abs_pk > D.lim_env) D.lim_env += 0.25f * (abs_pk - D.lim_env);
+                else                    D.lim_env += 0.0008f * (abs_pk - D.lim_env);
+                float lim_g = D.lim_env > 0.85f ? (0.85f / D.lim_env) : 1.0f;
+                if (lim_g < min_lim_g) min_lim_g = lim_g;
+                out_l = br_soft(out_l * lim_g * 0.95f) * gain;
+                out_r = br_soft(out_r * lim_g * 0.95f) * gain;
+
+                if (fm_fabsf(out_l) > pk_l) pk_l = fm_fabsf(out_l);
+                if (fm_fabsf(out_r) > pk_r) pk_r = fm_fabsf(out_r);
+                if ((i & 3u) == 0u) {
+                    float sl = br_soft(dcl * lim_g * 2.2f);
+                    float sr = br_soft(dcr * lim_g * 2.2f);
+                    S.scope_l[D.scope_w & 63u] = sl;
+                    S.scope_r[D.scope_w & 63u] = sr;
+                    D.scope_w++;
+                    /* Only run 16-Band Spectrum Filterbank when SPECTRUM view is active (1:8 decimated = zero overhead in WAVE/LISSAJOUS!) */
+                    if (D.spec_en && (i & 7u) == 0u) {
+                        float sm = (sl + sr) * 0.5f;
+                        for (k = 0; k < 16u; k++) {
+                            float g = SPEC_G[k];
+                            float hp = sm - D.spec_lp[k] - 0.55f * D.spec_bp[k];
+                            D.spec_bp[k] += g * hp;
+                            D.spec_lp[k] += g * D.spec_bp[k];
+                            float a = fm_fabsf(D.spec_bp[k]);
+                            if (a > spec_pk[k]) spec_pk[k] = a;
+                        }
+                    }
+                }
+
+                int32_t ql = (int32_t)(out_l * 8388607.0f);
+                int32_t qr = (int32_t)(out_r * 8388607.0f);
+                if (ql > 8388607) ql = 8388607; else if (ql < -8388607) ql = -8388607;
+                if (qr > 8388607) qr = 8388607; else if (qr < -8388607) qr = -8388607;
+                lr[i * 2u + 0u] = ql;
+                lr[i * 2u + 1u] = qr;
+            }
+            if (D.spec_en) {
+                for (k = 0; k < 16u; k++) {
+                    float v_band = br_clampf(spec_pk[k] * 1.9f, 0.0f, 1.0f);
+                    D.spec_bp[k] = fm_flush(D.spec_bp[k]);
+                    D.spec_lp[k] = fm_flush(D.spec_lp[k]);
+                    S.spec[k] = (v_band > S.spec[k]) ? (S.spec[k] * 0.35f + v_band * 0.65f) : (S.spec[k] * 0.86f);
+                }
+            }
+            S.gr_db = (min_lim_g < 0.999f) ? br_clampf((1.0f - min_lim_g) * 18.0f, 0.0f, 18.0f) : (S.gr_db * 0.85f);
+        }
+
+        /* Synchronize Stage B FX job before leaving app_render so Core 1 is always idle in main loop */
+        if (c2_fx_pending && hl_c2_wait) {
+            if (hl_c2_wait() < 0) {
+                hl_cs_mode = 0;
+                hl_cs_have = 0;
+                hl_cs_lost++;
             }
         }
-        S.gr_db = (min_lim_g < 0.999f) ? br_clampf((1.0f - min_lim_g) * 18.0f, 0.0f, 18.0f) : (S.gr_db * 0.85f);
     }
 
     D.xf_lo_l = fm_flush(D.xf_lo_l);

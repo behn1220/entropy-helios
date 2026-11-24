@@ -24,8 +24,15 @@ void app_say(const char *a, const char *b);
 #define APP_PALETTE 1                    /* AMBER/GOLD default palette */
 #define APP_BLOCK 256u                   /* frames per audio block: 5.8 ms at 44.1 kHz */
 #define APP_OVERLOAD
+#ifdef PLAT_TICKS_PER_US
+#define APP_LOG
+void app_log(void (*line)(const char *t));
+#else
 #define APP_LOG_LINES
 #define APP_LOG_WORD
+#endif
+int app_spk_muted(void);
+#define APP_GAIN(m) (app_spk_muted() ? 0u : ((m) * (m) >> 12))
 #define APP_TOUCH                        /* capacitive velocity and continuous pressure from the FM-1's 27 keys */
 #define APP_SPLASH                       /* replace early white/orange boot splash with Helios CRT oscilloscope splash */
 void app_splash(void);
