@@ -1210,6 +1210,10 @@ function saveThemeCookie(name){
 }
 function loadThemeCookie(){
   try{
+    const q=new URLSearchParams(location.search).get("theme");
+    if(q && THEME_NAMES.includes(q)) return q;
+  }catch(_){}
+  try{
     const m=document.cookie.match(/(?:^|;\s*)eh_theme=([^;]+)/);
     if(m && THEME_NAMES.includes(decodeURIComponent(m[1]))) return decodeURIComponent(m[1]);
   }catch(_){}
