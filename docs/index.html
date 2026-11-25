@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ENTROPY HELIOS — Dual-Core 8-Voice Ambient Drone Synthesizer for M-VAVE FM-1</title>
-<meta name="description" content="Free, open-source dual-core 8-voice ambient drone & microtonal synthesizer firmware for the M-VAVE FM-1. Includes a flagship WebMIDI Hardware Studio, 16 stackable FX cartridges, 5 anodized hardware colorways, 18 handcrafted presets, and live USB Audio FX.">
+<meta name="description" content="Free, open-source dual-core 8-voice ambient drone & microtonal synthesizer firmware for the M-VAVE FM-1. Includes a flagship WebMIDI Hardware Studio, 16 stackable FX cartridges, 5 color themes, 18 handcrafted presets, and live USB Audio FX.">
 <style>
 :root{
   --bg:#0d0e11; --surface:#17181d; --surface2:#202229; --border:#353024;
@@ -408,8 +408,8 @@ footer{padding:36px 0; text-align:center; font-size:13px; color:var(--muted);}
 <section id="studio" class="studio-sec">
   <div class="wrap">
     <div class="sec-eyebrow mono">Flagship Companion WebApp • Zero Install • Two-Way SysEx</div>
-    <h2>Full Anodized Hardware WebMIDI Studio — Right in Your Browser.</h2>
-    <p class="sec-lead">Plug your M-VAVE FM-1 in over USB-C and control every single oscillator, filter, FX cartridge, sequencer step, and modular CV pin in real time. Click any anodized finish below to preview the rack—your chosen finish syncs live to the FM-1's screen too.</p>
+    <h2>Full Hardware WebMIDI Studio — Right in Your Browser.</h2>
+    <p class="sec-lead">Plug your M-VAVE FM-1 in over USB-C and control every single oscillator, filter, FX cartridge, sequencer step, and modular CV pin in real time. Click any theme below to preview the rack—your chosen theme syncs live to the FM-1's screen too.</p>
 
     <div class="studio-frame">
       <div class="studio-bar">
@@ -431,8 +431,8 @@ footer{padding:36px 0; text-align:center; font-size:13px; color:var(--muted);}
       </div>
 
       <div class="studio-caption">
-        <div class="studio-theme-pills" role="group" aria-label="Preview WebMIDI Studio anodized finish">
-          <span class="mono" style="font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-right:4px;">Finish:</span>
+        <div class="studio-theme-pills" role="group" aria-label="Preview WebMIDI Studio color theme">
+          <span class="mono" style="font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-right:4px;">Theme:</span>
           <button class="tpill active" data-set="black"><i style="background:#18191c;"></i>Obsidian Black</button>
           <button class="tpill" data-set="cream"><i style="background:#ebe4d2;"></i>Vintage Cream</button>
           <button class="tpill" data-set="amber"><i style="background:#e4b226;"></i>Amber Yellow</button>
@@ -471,8 +471,8 @@ footer{padding:36px 0; text-align:center; font-size:13px; color:var(--muted);}
 <section id="screens">
   <div class="wrap">
     <div class="sec-eyebrow mono">240&times;240 RGB565 IPS Hardware UI</div>
-    <h2>Photorealistic Anodized Modules — Right on the FM-1 Screen.</h2>
-    <p class="sec-lead">Captured directly from Entropy Helios v1.2 firmware. Press any module button to zoom into full-screen tactile hardware views with 3D color-coded knobs, live filter curves, magnetic FX cartridges, and all 5 anodized finishes.</p>
+    <h2>Tactile Hardware Modules — Right on the FM-1 Screen.</h2>
+    <p class="sec-lead">Captured directly from Entropy Helios v1.2 firmware. Press any module button to zoom into full-screen tactile views with 3D color-coded knobs, live filter curves, magnetic FX cartridges, and all 5 color themes.</p>
 
     <div class="hw-gallery">
       <div class="hw-shot">
@@ -523,8 +523,8 @@ footer{padding:36px 0; text-align:center; font-size:13px; color:var(--muted);}
       </div>
       <div class="card">
         <span class="tag mono">TACTILE HARDWARE UI</span>
-        <h3>5 Anodized Finishes &amp; Zooming Modules</h3>
-        <p>Switch live between Black, Cream, Amber Yellow, Cobalt Blue, and Olive finishes. Press any module button to smoothly expand it across 80% of the screen with giant 3D color-coded knobs.</p>
+        <h3>5 Color Themes &amp; Zooming Modules</h3>
+        <p>Switch live between Black, Cream, Amber Yellow, Cobalt Blue, and Olive anodized-style themes. Press any module button to smoothly expand it across 80% of the screen with giant 3D color-coded knobs.</p>
       </div>
       <div class="card">
         <span class="tag mono">18 PRESETS + 24 USER SLOTS</span>
@@ -638,7 +638,7 @@ function updateStudioPreview() {
     cap.textContent = 'Dual Analog VCFs & 3-Spring Tank • 3D Spring Joystick • 8×8 Gold Pin Matrix • Webcam Optical & Desk-Tap Piezo Sensors';
   } else {
     img.src = 'img/studio-' + activeTheme + '.png';
-    img.alt = 'Entropy Helios WebMIDI Hardware Studio in ' + activeTheme + ' anodized finish';
+    img.alt = 'Entropy Helios WebMIDI Hardware Studio in ' + activeTheme + ' theme';
     cap.textContent = '12-column Eurorack rack • 16 Stackable FX Cartridges • 6-Drone Rack & Dual 5-Step Sequencers • Frozen Touch Plate Dock';
   }
   document.querySelectorAll('.studio-launch').forEach(a => {

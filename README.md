@@ -16,7 +16,7 @@ Plug your M-VAVE FM-1 into Chrome or Edge via USB-C and launch the **[Entropy He
 
 [![Entropy Helios WebMIDI Studio — Dual VCFs, 3D Spring Joystick, 8x8 Modular CV Pin Matrix, Optical CRT & Desk-Tap Piezo Mic](docs/img/studio-modular.png)](https://behn1220.github.io/entropy-helios/entropy-helios-studio.html?theme=cobalt)
 
-### 5 Matching Anodized Chassis Finishes (Synced Live to the FM-1 Screen)
+### 5 Matching Color Themes (Synced Live to the FM-1 Screen)
 
 | Vintage Cream | Amber Yellow |
 | :---: | :---: |
@@ -35,7 +35,7 @@ Plug your M-VAVE FM-1 into Chrome or Edge via USB-C and launch the **[Entropy He
 
 ---
 
-## FM-1 On-Device 240×240 Hardware UI (All 5 Anodized Finishes)
+## FM-1 On-Device 240×240 Hardware UI (All 5 Color Themes)
 
 Captured directly from Entropy Helios v1.2 firmware — every module button smoothly expands into full-screen tactile hardware views with 3D color-coded knobs, live filter curves, magnetic FX cartridges, and `ENT` / `PURE HW` badging:
 
