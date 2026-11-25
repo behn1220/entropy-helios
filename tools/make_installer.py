@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MPL-2.0
-"""Generate a standalone single-file HTML WebMIDI installer from upstream fm1-base's
-web/installer.html (with fm1ports.js, fm1pkg.js, fm1ota.js and the .fwsc inlined
-as a data: URL so it works both on GitHub Pages and opened locally via file://)."""
+"""Generate a standalone single-file HTML WebMIDI installer using the custom
+Entropy Helios Hardware Loader chassis (tools/installer_template.html) powered
+by upstream fm1-base's untouched fm1ports.js, fm1pkg.js, fm1ota.js & OTA script."""
 import base64
 import json
 import re
@@ -21,7 +21,18 @@ def make_installer(base_dir: Path, app_dir: Path, pkg_path: Path, version: str, 
     if b"FELUCCA-LOADER-1" not in raw:
         raise SystemExit(f"{pkg_path}: no update loader in package")
 
-    html = (base_dir / "web" / "installer.html").read_text(encoding="utf-8")
+    upstream_html = (base_dir / "web" / "installer.html").read_text(encoding="utf-8")
+    m = re.search(r"<script type=\"module\">[\s\S]*?</script>", upstream_html)
+    if not m:
+        raise SystemExit("upstream web/installer.html missing <script type=\"module\"> block")
+    upstream_script = m.group(0)
+
+    tpl_path = Path(__file__).resolve().parent / "installer_template.html"
+    if tpl_path.exists():
+        html = tpl_path.read_text(encoding="utf-8").replace("/*UPSTREAM_SCRIPT*/", upstream_script)
+    else:
+        html = upstream_html
+
     lib = "\n".join(
         strip_module((base_dir / "web" / f).read_text(encoding="utf-8"))
         for f in ("fm1ports.js", "fm1pkg.js", "fm1ota.js")
@@ -38,7 +49,7 @@ def make_installer(base_dir: Path, app_dir: Path, pkg_path: Path, version: str, 
 
     for mark in ("/*LIB*/", "/*META*/"):
         if html.count(mark) != 1:
-            raise SystemExit(f"web/installer.html must contain {mark} once")
+            raise SystemExit(f"installer template must contain {mark} once")
 
     repo = conf.get("repo", "https://github.com/behn1220/entropy-helios")
     credits = conf.get("credits", "")
@@ -47,6 +58,8 @@ def make_installer(base_dir: Path, app_dir: Path, pkg_path: Path, version: str, 
         ("RES", conf.get("resources_what", f"{name}'s data")),
         ("RES_JA", conf.get("resources_what_ja", f"{name} のデータ")),
         ("NAME", name),
+        ("VERSION", version),
+        ("PRODUCT", product),
         ("REPO", repo),
         ("REPO_SHORT", re.sub(r"^https?://", "", repo)),
         ("LICENSE", conf.get("licence", "MPL-2.0")),

@@ -1,0 +1,443 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: MPL-2.0
+     ENTROPY HELIOS Dedicated Hardware Firmware Loader
+     OTA Engine: fm1-base & felucca-bsp (Charles Vestal, Leo Kuroshita / Hugelton Instruments) -->
+<html lang="en" data-theme="cream">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ENTROPY HELIOS {{VERSION}} — Hardware Firmware Loader</title>
+<style>
+:root,[data-theme="cream"]{
+  --bg:#cec7b6; --panel:#ebe5d6; --panel2:#e1dac7; --well:#15161a; --bdr:#b7ae97; --bdr-hi:#f7f3e8;
+  --txt:#1a1b1f; --dim:#565043; --well-txt:#f0ece1; --well-dim:#9c9686;
+  --gold:#b57414; --green:#1f8f4d; --cyan:#147a96; --red:#c43228;
+  --btn-bg:linear-gradient(180deg,#f5f0e2,#dcd4c0); --btn-txt:#1a1b1f; --btn-bdr:#a79d86;
+  --screw1:#b8b09b; --screw2:#6e6757;
+}
+[data-theme="black"]{
+  --bg:#0b0c0f; --panel:#17191f; --panel2:#20232b; --well:#0b0d11; --bdr:#323540; --bdr-hi:#3f4452;
+  --txt:#f0ece1; --dim:#989386; --well-txt:#f0ece1; --well-dim:#989386;
+  --gold:#ebb949; --green:#52e88b; --cyan:#49d8eb; --red:#f05a4f;
+  --btn-bg:linear-gradient(180deg,#2a2d36,#1b1e25); --btn-txt:#f0ece1; --btn-bdr:#3c404d;
+  --screw1:#686c78; --screw2:#23252c;
+}
+[data-theme="amber"]{
+  --bg:#b58614; --panel:#dfb026; --panel2:#cfa01d; --well:#16140f; --bdr:#8c680f; --bdr-hi:#f3cb56;
+  --txt:#171308; --dim:#45360d; --well-txt:#f5eedc; --well-dim:#b8ae92;
+  --gold:#7d4206; --green:#176b36; --cyan:#135473; --red:#a82018;
+  --btn-bg:linear-gradient(180deg,#edc342,#c99818); --btn-txt:#171308; --btn-bdr:#85610c;
+  --screw1:#a87d14; --screw2:#5c4208;
+}
+[data-theme="cobalt"]{
+  --bg:#0d1e3a; --panel:#183766; --panel2:#20457d; --well:#091426; --bdr:#3c6bb0; --bdr-hi:#5484cc;
+  --txt:#f2f6fc; --dim:#b3c9eb; --well-txt:#f2f6fc; --well-dim:#9fbbe6;
+  --gold:#f5cb4c; --green:#57eb97; --cyan:#6ee7f5; --red:#ff6e63;
+  --btn-bg:linear-gradient(180deg,#265191,#183868); --btn-txt:#f2f6fc; --btn-bdr:#4878bd;
+  --screw1:#6c94d1; --screw2:#163059;
+}
+[data-theme="olive"]{
+  --bg:#2d2917; --panel:#4f482b; --panel2:#5e5635; --well:#14130d; --bdr:#82784e; --bdr-hi:#9c9162;
+  --txt:#f5edd2; --dim:#cfc5a2; --well-txt:#f5edd2; --well-dim:#bdb390;
+  --gold:#f2b63d; --green:#6ee39c; --cyan:#75dce8; --red:#f26b5e;
+  --btn-bg:linear-gradient(180deg,#69603b,#4a4327); --btn-txt:#f5edd2; --btn-bdr:#857b50;
+  --screw1:#9e9468; --screw2:#3d3720;
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh; padding:26px 14px 40px;
+  background:radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--panel) 55%, var(--bg)), var(--bg) 72%);
+  color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  transition:background .2s ease, color .2s ease;
+}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+
+/* Dedicated Hardware Unit Housing */
+.unit{
+  position:relative; width:100%; max-width:680px;
+  background:linear-gradient(170deg, var(--panel), var(--panel2));
+  border:2px solid var(--bdr); border-radius:20px;
+  padding:22px 24px 24px;
+  box-shadow:0 28px 70px rgba(0,0,0,0.42), inset 0 1px 0 var(--bdr-hi), inset 0 -2px 0 rgba(0,0,0,0.28);
+}
+.screw{
+  position:absolute; width:11px; height:11px; border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, var(--screw1), var(--screw2) 78%);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,0.35), 0 1px 2px rgba(0,0,0,0.55);
+}
+.screw::after{
+  content:""; position:absolute; top:50%; left:2px; right:2px; height:1.5px;
+  background:rgba(0,0,0,0.45); transform:translateY(-50%) rotate(-32deg);
+}
+.screw.tl{top:11px;left:11px;} .screw.tr{top:11px;right:11px;}
+.screw.bl{bottom:11px;left:11px;} .screw.br{bottom:11px;right:11px;}
+
+/* Unit Top Nameplate */
+.unit-head{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;
+  padding:0 12px 14px; margin-bottom:14px; border-bottom:1px solid var(--bdr);
+}
+.brand-wrap{display:flex; align-items:center; gap:10px;}
+.pwr-led{
+  width:10px; height:10px; border-radius:50%;
+  background:#3ce68a; box-shadow:0 0 10px #3ce68a, inset 0 1px 2px #d4ffe8;
+}
+.unit-title{margin:0; font-size:17px; font-weight:900; letter-spacing:2px; text-transform:uppercase;}
+.unit-sub{font-size:10px; font-weight:700; letter-spacing:1.3px; color:var(--dim); text-transform:uppercase;}
+.head-right{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.swatches{
+  display:flex; gap:6px; align-items:center; padding:4px 8px; border-radius:999px;
+  background:rgba(0,0,0,0.14); border:1px solid var(--bdr);
+}
+.sw{
+  width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,0.28);
+  cursor:pointer; padding:0; transition:transform .12s ease, border-color .12s ease;
+}
+.sw:hover{transform:scale(1.16);}
+.sw.active{border-color:#fff; box-shadow:0 0 0 2px var(--gold); transform:scale(1.15);}
+.sw-black{background:#18191c;} .sw-cream{background:#ebe4d2;} .sw-amber{background:#e4b226;}
+.sw-cobalt{background:#285ea8;} .sw-olive{background:#6d643e;}
+.lang-btn{
+  background:var(--btn-bg); color:var(--btn-txt); border:1px solid var(--btn-bdr);
+  border-radius:6px; padding:4px 9px; font-size:11px; font-weight:700; cursor:pointer;
+}
+
+/* Curved P31 Phosphor-Green CRT Monitor */
+.crt-bezel{
+  background:linear-gradient(180deg, #1b1d22, #0d0f12);
+  border:2px solid #2d3038; border-radius:16px; padding:12px;
+  box-shadow:inset 0 4px 16px rgba(0,0,0,0.92), 0 1px 0 var(--bdr-hi);
+  margin-bottom:18px;
+}
+.crt-glass{
+  position:relative; overflow:hidden;
+  background:radial-gradient(ellipse at 50% 42%, #0a2414 0%, #05130a 62%, #020804 100%);
+  border:1px solid #183d25; border-radius:10px; padding:16px 18px 14px;
+  color:#72ff9e; text-shadow:0 0 8px rgba(77,255,136,0.45);
+  box-shadow:inset 0 0 38px rgba(0,0,0,0.85), inset 0 0 16px rgba(45,220,105,0.12);
+}
+/* CRT Scanlines + Curved Glass Glare */
+.crt-glass::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(180deg, rgba(0,0,0,0.22) 0px, rgba(0,0,0,0.22) 1px, transparent 1px, transparent 3px);
+}
+.crt-glass::after{
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:10px;
+  background:linear-gradient(135deg, rgba(160,255,195,0.08) 0%, transparent 36%, transparent 100%);
+}
+.crt-top{
+  position:relative; z-index:1; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  font-size:11px; font-weight:700; letter-spacing:1px; color:#4ee37f; opacity:.85;
+  padding-bottom:8px; margin-bottom:10px; border-bottom:1px solid rgba(78,227,127,0.22);
+}
+.crt-intro{
+  position:relative; z-index:1; font-size:12.5px; line-height:1.5; color:#9effbe;
+  margin:0 0 10px; opacity:.9;
+}
+.crt-warn{
+  position:relative; z-index:1; font-size:11.5px; font-weight:700; color:#ffd46b;
+  text-shadow:0 0 8px rgba(255,212,107,0.4); margin:0 0 12px;
+}
+#status{
+  position:relative; z-index:1; margin:0 0 10px; min-height:1.5em;
+  font-size:15px; font-weight:800; letter-spacing:.4px; color:#88ffb0;
+}
+#alert{
+  position:relative; z-index:1; margin:0 0 10px; font-size:13px; font-weight:800;
+  color:#ff8478; text-shadow:0 0 10px rgba(255,100,90,0.5);
+}
+#alert:empty{display:none;}
+
+/* Phosphor Progress Bar */
+.prog-wrap{position:relative; z-index:1; margin:6px 0 8px;}
+progress#bar{
+  width:100%; height:14px; appearance:none; -webkit-appearance:none;
+  border:1px solid #296b41; border-radius:4px; overflow:hidden;
+  background:#030e07; box-shadow:inset 0 1px 6px rgba(0,0,0,0.9);
+}
+progress#bar::-webkit-progress-bar{background:#030e07;}
+progress#bar::-webkit-progress-value{
+  background:linear-gradient(90deg, #27c762, #6eff9f);
+  box-shadow:0 0 12px rgba(78,255,140,0.85);
+}
+progress#bar::-moz-progress-bar{background:linear-gradient(90deg, #27c762, #6eff9f);}
+
+/* CRT Scrolling Terminal Log */
+#log{
+  position:relative; z-index:1; margin:10px 0 0; max-height:11em; overflow-y:auto;
+  overscroll-behavior:contain; padding:8px 10px; border-radius:6px;
+  background:rgba(2,10,5,0.72); border:1px solid rgba(78,227,127,0.24);
+  font-size:11px; line-height:1.45; color:#5fe88c; white-space:pre-wrap;
+}
+#log:empty{display:none;}
+
+/* Tactile Hardware Control Deck Below CRT */
+.deck{
+  display:flex; flex-direction:column; gap:14px;
+}
+.primary-row{
+  display:grid; grid-template-columns:1fr auto; gap:10px; align-items:stretch;
+}
+@media(max-width:520px){.primary-row{grid-template-columns:1fr;}}
+.hw-btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:9px;
+  padding:12px 18px; border-radius:10px; border:1px solid var(--btn-bdr);
+  background:var(--btn-bg); color:var(--btn-txt);
+  font-size:13px; font-weight:800; letter-spacing:.8px; text-transform:uppercase;
+  text-decoration:none; cursor:pointer;
+  box-shadow:0 3px 8px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.25);
+  transition:transform .1s ease, filter .12s ease, border-color .15s ease;
+}
+.hw-btn:hover:not(:disabled){filter:brightness(1.06); border-color:var(--gold);}
+.hw-btn:active:not(:disabled){transform:translateY(1px);}
+.hw-btn:disabled{opacity:.45; cursor:not-allowed;}
+.hw-btn.primary{
+  background:linear-gradient(180deg, #2fb865, #1d8746); color:#fff; border-color:#156935;
+  font-size:15px; padding:14px 24px;
+  box-shadow:0 4px 14px rgba(31,143,77,0.38), inset 0 1px 0 rgba(255,255,255,0.35);
+}
+.hw-btn.primary .btn-led{
+  width:9px; height:9px; border-radius:50%; background:#a8ffca; box-shadow:0 0 8px #a8ffca;
+}
+.hw-btn.danger{
+  background:linear-gradient(180deg, #cf463a, #a62b21); color:#fff; border-color:#7d1e17;
+}
+.hw-btn.sm{padding:7px 12px; font-size:11px; border-radius:7px;}
+
+.sub-actions{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px;
+}
+
+/* Recessed Utility Bays (Revert / Port Picker / Diagnostics) */
+details.bay, .bay-box{
+  background:rgba(0,0,0,0.10); border:1px solid var(--bdr); border-radius:12px;
+  padding:11px 14px;
+}
+details.bay summary{
+  cursor:pointer; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+  list-style:none; display:flex; align-items:center; justify-content:space-between;
+}
+details.bay summary::-webkit-details-marker{display:none;}
+details.bay summary::after{content:"+"; font-size:15px; opacity:.7;}
+details.bay[open] summary::after{content:"\2212";}
+.bay-body{margin-top:12px; padding-top:10px; border-top:1px solid var(--bdr); font-size:13px; color:var(--dim);}
+.bay-body p,.bay-body ol{margin:0 0 10px;}
+.bay-body ol{padding-left:18px;}
+.bay-body a{color:var(--txt); font-weight:600;}
+input[type=file]{font:inherit; font-size:12px; color:var(--txt); max-width:100%; margin-top:4px;}
+textarea#report{
+  width:100%; margin-top:8px; font:11.5px/1.4 ui-monospace,Menlo,monospace;
+  background:var(--well); color:var(--well-txt); border:1px solid var(--bdr);
+  border-radius:8px; padding:10px;
+}
+#portlist{list-style:none; padding:0; margin:8px 0;}
+#portlist li{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:6px;}
+.backup-note{
+  font-size:12px; color:var(--dim); background:rgba(0,0,0,0.08);
+  border-left:3px solid var(--gold); padding:8px 12px; border-radius:6px; margin:0;
+}
+.backup-note strong{color:var(--txt);}
+
+/* Modals */
+dialog{
+  max-width:440px; width:calc(100% - 28px); border:2px solid var(--bdr); border-radius:14px;
+  padding:22px; background:var(--panel); color:var(--txt);
+  box-shadow:0 20px 60px rgba(0,0,0,0.55);
+}
+dialog::backdrop{background:rgba(0,0,0,0.62); backdrop-filter:blur(3px);}
+dialog h2{margin:0 0 12px; font-size:17px; letter-spacing:.5px; text-transform:uppercase;}
+dialog p{margin:0 0 12px; font-size:13.5px; line-height:1.5;}
+dialog .opt{display:flex; gap:10px; align-items:flex-start; font-weight:700;}
+dialog .opt input{margin-top:4px; width:16px; height:16px; accent-color:var(--green);}
+dialog .row{display:flex; gap:10px; justify-content:flex-end; margin-top:18px;}
+button.plain{
+  background:var(--btn-bg); color:var(--btn-txt); border:1px solid var(--btn-bdr);
+  border-radius:8px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer;
+}
+#confirmgo{
+  background:linear-gradient(180deg, #2fb865, #1d8746); color:#fff; border:1px solid #156935;
+  border-radius:8px; padding:8px 18px; font-size:12px; font-weight:800; cursor:pointer;
+}
+#confirmgo:disabled{opacity:.42; cursor:not-allowed;}
+
+footer{
+  width:100%; max-width:680px; margin-top:18px; padding:0 8px;
+  font-size:11.5px; line-height:1.55; color:var(--dim); text-align:center;
+}
+footer a{color:var(--txt);}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important;}}
+</style>
+</head>
+<body>
+
+<main class="unit" aria-label="Entropy Helios Hardware Firmware Loader">
+  <span class="screw tl"></span><span class="screw tr"></span>
+  <span class="screw bl"></span><span class="screw br"></span>
+
+  <header class="unit-head">
+    <div class="brand-wrap">
+      <span class="pwr-led" id="pwrLed"></span>
+      <div>
+        <h1 class="unit-title mono">{{NAME}}</h1>
+        <div class="unit-sub mono">FIRMWARE LOADER UNIT &bull; v{{VERSION}}</div>
+      </div>
+    </div>
+    <div class="head-right">
+      <div class="swatches" title="Switch Chassis Theme (shared with WebMIDI Studio)">
+        <button type="button" class="sw sw-black" data-name="black" aria-label="Obsidian Black"></button>
+        <button type="button" class="sw sw-cream" data-name="cream" aria-label="Vintage Cream"></button>
+        <button type="button" class="sw sw-amber" data-name="amber" aria-label="Amber Yellow"></button>
+        <button type="button" class="sw sw-cobalt" data-name="cobalt" aria-label="Cobalt Blue"></button>
+        <button type="button" class="sw sw-olive" data-name="olive" aria-label="Tactical Olive"></button>
+      </div>
+      <button type="button" class="lang-btn" id="lang" lang="ja">日本語</button>
+    </div>
+  </header>
+
+  <!-- P31 PHOSPHOR-GREEN CRT DISPLAY -->
+  <section class="crt-bezel" aria-label="Firmware Loader CRT Monitor">
+    <div class="crt-glass mono">
+      <div class="crt-top">
+        <span>P31 CRT // USB-MIDI FAST OTA</span>
+        <span>TARGET: {{PRODUCT}}</span>
+      </div>
+      <p class="crt-intro" data-t="intro">Connect the FM-1 by USB, then press Install. It works in Chrome or Edge; the browser asks once to allow MIDI: allow it.</p>
+      <p class="crt-warn" data-t="warn">Do not unplug the USB cable while writing.</p>
+      <p id="status" role="status">INITIALIZING LOADER...</p>
+      <p id="alert" role="alert"></p>
+      <div class="prog-wrap">
+        <label class="sr" for="bar" data-t="progress">Progress</label>
+        <progress id="bar" max="100" value="0"></progress>
+      </div>
+      <pre id="log"></pre>
+    </div>
+  </section>
+
+  <!-- TACTILE HARDWARE CONTROL DECK -->
+  <section class="deck">
+    <div id="mbootopt" hidden class="bay-box">
+      <p class="opt" style="display:flex;gap:8px;align-items:flex-start;margin:0 0 6px;font-size:12.5px;"><input type="checkbox" id="mboot"><label for="mboot" data-t="mboot"></label></p>
+      <p style="margin:0;font-size:11.5px;color:var(--dim);"><span data-t="mbootwhy"></span> <a href="https://github.com/jvitkauskas/m-bootloader" target="_blank" rel="noopener">github.com/jvitkauskas/m-bootloader</a></p>
+    </div>
+
+    <div class="primary-row">
+      <button type="button" class="hw-btn primary mono" id="go" disabled><span class="btn-led"></span><span data-t="install">Install</span></button>
+      <a class="hw-btn mono" id="studioLink" href="entropy-helios-studio.html">Open WebMIDI Studio</a>
+    </div>
+
+    <p class="backup-note"><strong data-t="bakh">Back up first.</strong> <span data-t="confirmbak"></span>
+      <a class="baklink" href="../backup/" target="_blank" rel="noopener"><span data-t="backuplink"></span><span class="sr" data-t="newtab"> (opens in a new tab)</span></a></p>
+
+    <div id="portpick" hidden class="bay-box">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;" data-t="pickh">Is the FM-1 under another name?</div>
+      <p style="margin:0 0 8px;font-size:12px;color:var(--dim);" data-t="pickwhy"></p>
+      <ul id="portlist" style="font-size:12px;"></ul>
+      <p id="pickstatus" role="status" style="margin:6px 0 0;font-size:12px;font-weight:700;"></p>
+    </div>
+
+    <details class="bay">
+      <summary class="mono" data-t="stockh">Back to the stock firmware</summary>
+      <div class="bay-body">
+        <p data-t="stockwhy"></p>
+        <p data-t="direct"></p>
+        <p data-t="back"></p>
+        <ol>
+          <li><span data-t="stock1"></span> <a id="stocklink" href="https://yms-file-store.oss-cn-hongkong.aliyuncs.com/software/firmware/FM-1.fwsc">FM-1.fwsc</a> (<a href="https://www.m-vave.com/download" target="_blank" rel="noopener">m-vave.com/download</a>)</li>
+          <li><label for="stockfile" data-t="stock2">Choose the file you downloaded:</label><br><input type="file" id="stockfile" accept=".fwsc"></li>
+          <li data-t="stock3"></li>
+        </ol>
+        <button type="button" class="hw-btn danger sm mono" id="stockgo" disabled data-t="stockinstall">Install the stock firmware</button>
+      </div>
+    </details>
+
+    <details class="bay">
+      <summary class="mono" data-t="reporth">Report a problem / Crash Log</summary>
+      <div class="bay-body">
+        <p data-t="reportwhy"></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <button type="button" class="hw-btn sm mono" id="reportgo" data-t="reportread">Read the crash report</button>
+          <button type="button" class="hw-btn sm mono" id="reportcopy" hidden data-t="reportcopy">Copy</button>
+        </div>
+        <p id="reportstatus" role="status" style="margin:0;font-weight:700;"></p>
+        <label class="sr" for="report" data-t="reportlabel">Crash report</label>
+        <textarea id="report" readonly hidden rows="12"></textarea>
+        <p style="margin-top:10px;"><span data-t="brick"></span> <a href="https://github.com/hugelton/felucca-bsp/tree/main/tools" target="_blank" rel="noopener" data-t="bricklink">recovering an FM-1 that won't start</a></p>
+      </div>
+    </details>
+
+    <div class="sub-actions">
+      <a class="hw-btn sm mono" href="index.html" data-t="manual">Back to {{NAME}}</a>
+      <a class="hw-btn sm mono" href="{{REPO}}" target="_blank" rel="noopener">GitHub Repository</a>
+    </div>
+  </section>
+</main>
+
+<dialog id="appask" aria-labelledby="appaskh">
+  <form method="dialog">
+    <h2 id="appaskh"></h2>
+    <div id="appaskt"></div>
+    <div class="row" id="appaskrow"></div>
+  </form>
+</dialog>
+
+<dialog id="confirm" aria-labelledby="confirmh">
+  <form method="dialog">
+    <h2 id="confirmh" data-t="confirmh"></h2>
+    <p class="backup-note" style="margin-bottom:12px;"><strong data-t="bakh">Back up first.</strong> <span data-t="confirmbak"></span>
+      <a class="baklink" href="../backup/" target="_blank" rel="noopener"><span data-t="backuplink"></span><span class="sr" data-t="newtab"> (opens in a new tab)</span></a></p>
+    <p class="opt"><input type="checkbox" id="bakok"><label for="bakok" data-t="bakok"></label></p>
+    <p data-t="confirm1"></p>
+    <p id="confirmboot" data-t="confirmboot"></p>
+    <div class="row">
+      <button type="submit" class="plain" value="cancel" data-t="confirmcancel"></button>
+      <button type="submit" id="confirmgo" value="go" disabled data-t="confirmgo"></button>
+    </div>
+  </form>
+</dialog>
+
+<footer>
+  <p>{{NAME}} v{{VERSION}} &bull; Built on fm1-base &amp; felucca-bsp by Leo Kuroshita (@kurogedelic), <a href="https://hugelton.com" target="_blank" rel="noopener">Hügelton Instruments</a>.{{CREDITS}}<br>
+  M-VAVE and FM-1 are trademarks of their respective owners. <span data-t="license"></span> <a href="{{REPO}}" target="_blank" rel="noopener">{{REPO_SHORT}}</a></p>
+</footer>
+
+<script>
+/* Shared Chassis Theme Sync with Entropy Helios WebMIDI Studio (eh_theme cookie + localStorage; defaults to cream/white) */
+(function(){
+  const THEMES = ["black", "cream", "amber", "cobalt", "olive"];
+  function loadTheme(){
+    try {
+      const q = new URLSearchParams(location.search).get("theme");
+      if (q && THEMES.includes(q)) return q;
+    } catch(_){}
+    try {
+      const m = document.cookie.match(/(?:^|;\s*)eh_theme=([^;]+)/);
+      if (m && THEMES.includes(decodeURIComponent(m[1]))) return decodeURIComponent(m[1]);
+    } catch(_){}
+    try {
+      const s = localStorage.getItem("eh_theme");
+      if (s && THEMES.includes(s)) return s;
+    } catch(_){}
+    return "cream";
+  }
+  function applyTheme(name, persist){
+    if (!THEMES.includes(name)) name = "cream";
+    document.documentElement.setAttribute("data-theme", name);
+    document.querySelectorAll(".sw").forEach(b => b.classList.toggle("active", b.dataset.name === name));
+    const sl = document.getElementById("studioLink");
+    if (sl) sl.href = "entropy-helios-studio.html?theme=" + encodeURIComponent(name);
+    if (persist) {
+      try { document.cookie = "eh_theme=" + encodeURIComponent(name) + "; max-age=31536000; path=/; SameSite=Lax"; } catch(_){}
+      try { localStorage.setItem("eh_theme", name); } catch(_){}
+    }
+  }
+  document.querySelectorAll(".sw").forEach(b => b.addEventListener("click", () => applyTheme(b.dataset.name, true)));
+  applyTheme(loadTheme(), false);
+})();
+</script>
+/*UPSTREAM_SCRIPT*/
+</body>
+</html>
