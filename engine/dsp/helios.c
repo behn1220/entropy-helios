@@ -353,8 +353,9 @@ static struct {
     float joy_rec_ph;
     uint8_t joy_rec_len;
 
-    /* Pultec Low-End Foundation & Lookahead Limiter (Run on Core 0) */
+    /* Pultec Low-End Foundation, 3-Band Parametric Master EQ & Lookahead Limiter (Run on Core 0) */
     float xf_lo_l, xf_lo_r, dc_xl, dc_yl, dc_xr, dc_yr;
+    float eq_z1[3][2], eq_z2[3][2];
     float lim_env;
     uint32_t scope_w;
 
@@ -1277,6 +1278,7 @@ void helios_load_patch(uint32_t idx)
     S.scene_b_set = 0u;
     S.compare_on  = 0u;
     S.morph_pos   = 0.0f;
+    helios_eq_reset();
     hl_snap_scene(&hl_scene_a);
     hl_scene_b = hl_scene_a;
     D.ev_home_root   = S.root;
@@ -1366,6 +1368,7 @@ void helios_load_init(uint8_t pure)
     S.master_hpf    = 0.0f;
     S.master_tilt   = 0.0f;
     S.master_tape   = 0.12f;
+    helios_eq_reset();
     S.joy_x         = 0.0f;
     S.joy_y         = 0.0f;
     S.joy_rec_state = 0u;
@@ -1412,6 +1415,23 @@ void helios_load_init(uint8_t pure)
     D.ev_mel_rest_t = 0.0f;
     D.ev_tgt_ready  = 0u;
     helios_panic(); /* Flush reverb/delay/spring tails so blank INIT starts dead silent */
+}
+
+void helios_eq_reset(void)
+{
+    uint32_t b;
+    S.eq_on     = 1u;
+    S.eq_lo_db  = 0.0f;
+    S.eq_lo_hz  = 0.35f; /* ~95 Hz Low Shelf */
+    S.eq_mid_db = 0.0f;
+    S.eq_mid_hz = 0.50f; /* ~900 Hz Parametric Mid Bell */
+    S.eq_mid_q  = 0.30f; /* Q ~ 0.93 */
+    S.eq_hi_db  = 0.0f;
+    S.eq_hi_hz  = 0.50f; /* ~5.0 kHz High Shelf */
+    for (b = 0; b < 3u; b++) {
+        D.eq_z1[b][0] = D.eq_z1[b][1] = 0.0f;
+        D.eq_z2[b][0] = D.eq_z2[b][1] = 0.0f;
+    }
 }
 
 void helios_set_pure_mode(uint8_t on)
@@ -3091,6 +3111,58 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
             float tape  = S.master_tape;
             float min_lim_g = 1.0f;
             float spec_pk[16];
+            /* Block-rate RBJ 3-Band Parametric Master EQ coefficients (Low Shelf, Mid Bell, High Shelf) */
+            float eq_b0[3], eq_b1[3], eq_b2[3], eq_a1[3], eq_a2[3];
+            uint8_t eq_act[3] = {0u, 0u, 0u};
+            if (S.eq_on) {
+                if (fm_fabsf(S.eq_lo_db) > 0.05f) {
+                    float fl = 50.0f * fm_powf(6.0f, br_clampf(S.eq_lo_hz, 0.0f, 1.0f));
+                    float A  = fm_exp2f(br_clampf(S.eq_lo_db, -12.0f, 12.0f) * 0.083048202f);
+                    float w0 = 6.2831853f * fl * hl_inv_fs;
+                    float cw = fm_cosf(w0), sw = fm_sinf(w0);
+                    float al = sw * 0.70710678f;
+                    float ts = 2.0f * fm_sqrtf(A) * al;
+                    float ap1 = A + 1.0f, am1 = A - 1.0f;
+                    float ia0 = 1.0f / (ap1 + am1 * cw + ts);
+                    eq_b0[0] = (A * (ap1 - am1 * cw + ts)) * ia0;
+                    eq_b1[0] = (2.0f * A * (am1 - ap1 * cw)) * ia0;
+                    eq_b2[0] = (A * (ap1 - am1 * cw - ts)) * ia0;
+                    eq_a1[0] = (-2.0f * (am1 + ap1 * cw)) * ia0;
+                    eq_a2[0] = (ap1 + am1 * cw - ts) * ia0;
+                    eq_act[0] = 1u;
+                }
+                if (fm_fabsf(S.eq_mid_db) > 0.05f) {
+                    float fm = 180.0f * fm_powf(25.0f, br_clampf(S.eq_mid_hz, 0.0f, 1.0f));
+                    float q  = 0.5f * fm_powf(8.0f, br_clampf(S.eq_mid_q, 0.0f, 1.0f));
+                    float A  = fm_exp2f(br_clampf(S.eq_mid_db, -12.0f, 12.0f) * 0.083048202f);
+                    float w0 = 6.2831853f * fm * hl_inv_fs;
+                    float cw = fm_cosf(w0), sw = fm_sinf(w0);
+                    float al = sw / (2.0f * q);
+                    float ia0 = 1.0f / (1.0f + al / A);
+                    eq_b0[1] = (1.0f + al * A) * ia0;
+                    eq_b1[1] = (-2.0f * cw) * ia0;
+                    eq_b2[1] = (1.0f - al * A) * ia0;
+                    eq_a1[1] = eq_b1[1];
+                    eq_a2[1] = (1.0f - al / A) * ia0;
+                    eq_act[1] = 1u;
+                }
+                if (fm_fabsf(S.eq_hi_db) > 0.05f) {
+                    float fh = 2500.0f * fm_powf(4.0f, br_clampf(S.eq_hi_hz, 0.0f, 1.0f));
+                    float A  = fm_exp2f(br_clampf(S.eq_hi_db, -12.0f, 12.0f) * 0.083048202f);
+                    float w0 = 6.2831853f * fh * hl_inv_fs;
+                    float cw = fm_cosf(w0), sw = fm_sinf(w0);
+                    float al = sw * 0.70710678f;
+                    float ts = 2.0f * fm_sqrtf(A) * al;
+                    float ap1 = A + 1.0f, am1 = A - 1.0f;
+                    float ia0 = 1.0f / (ap1 - am1 * cw + ts);
+                    eq_b0[2] = (A * (ap1 + am1 * cw + ts)) * ia0;
+                    eq_b1[2] = (-2.0f * A * (am1 + ap1 * cw)) * ia0;
+                    eq_b2[2] = (A * (ap1 + am1 * cw - ts)) * ia0;
+                    eq_a1[2] = (2.0f * (am1 - ap1 * cw)) * ia0;
+                    eq_a2[2] = (ap1 - am1 * cw - ts) * ia0;
+                    eq_act[2] = 1u;
+                }
+            }
             for (k = 0; k < 16u; k++) spec_pk[k] = 0.0f;
 
             for (i = 0; i < n; i++) {
@@ -3121,6 +3193,22 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
                     float tr = br_soft((out_r + 0.06f * out_r * out_r) * drv) / (1.0f + 0.45f * tape);
                     out_l = out_l * (1.0f - tape) + tl * tape;
                     out_r = out_r * (1.0f - tape) + tr * tape;
+                }
+
+                /* Studio 3-Band Parametric Master EQ (Transposed Direct Form II, skipped when flat/bypassed) */
+                if (eq_act[0] | eq_act[1] | eq_act[2]) {
+                    uint32_t eb;
+                    for (eb = 0u; eb < 3u; eb++) {
+                        if (!eq_act[eb]) continue;
+                        float yl = eq_b0[eb] * out_l + D.eq_z1[eb][0];
+                        D.eq_z1[eb][0] = eq_b1[eb] * out_l - eq_a1[eb] * yl + D.eq_z2[eb][0];
+                        D.eq_z2[eb][0] = eq_b2[eb] * out_l - eq_a2[eb] * yl;
+                        out_l = yl;
+                        float yr = eq_b0[eb] * out_r + D.eq_z1[eb][1];
+                        D.eq_z1[eb][1] = eq_b1[eb] * out_r - eq_a1[eb] * yr + D.eq_z2[eb][1];
+                        D.eq_z2[eb][1] = eq_b2[eb] * out_r - eq_a2[eb] * yr;
+                        out_r = yr;
+                    }
                 }
 
                 float abs_pk = fm_fabsf(out_l) > fm_fabsf(out_r) ? fm_fabsf(out_l) : fm_fabsf(out_r);
@@ -3185,6 +3273,10 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
     D.xf_lo_r = fm_flush(D.xf_lo_r);
     D.tilt_l  = fm_flush(D.tilt_l);
     D.tilt_r  = fm_flush(D.tilt_r);
+    for (k = 0; k < 3u; k++) {
+        D.eq_z1[k][0] = fm_flush(D.eq_z1[k][0]); D.eq_z1[k][1] = fm_flush(D.eq_z1[k][1]);
+        D.eq_z2[k][0] = fm_flush(D.eq_z2[k][0]); D.eq_z2[k][1] = fm_flush(D.eq_z2[k][1]);
+    }
     D.lim_env = fm_flush(D.lim_env);
     D.usb_in_ready = 0u;
     S.vu_l = S.vu_l * 0.78f + pk_l * 0.22f;

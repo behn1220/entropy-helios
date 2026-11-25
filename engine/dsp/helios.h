@@ -174,6 +174,16 @@ typedef struct {
     float   master_tilt;  /* -1..+1: Mastering Tilt EQ (warm dark <-> airy bright) */
     float   master_tape;  /* 0..1: Analog Tape Warmth / Soft-Clip Saturation */
 
+    /* Studio 3-Band Parametric Master EQ (Low Shelf + Sweepable Mid Bell + High Shelf) */
+    uint8_t eq_on;        /* 1 = Master Parametric EQ active, 0 = bypassed */
+    float   eq_lo_db;     /* -12.0 .. +12.0 dB (Low Shelf gain) */
+    float   eq_lo_hz;     /* 0..1 -> 50 Hz .. 300 Hz */
+    float   eq_mid_db;    /* -12.0 .. +12.0 dB (Parametric Mid Bell gain) */
+    float   eq_mid_hz;    /* 0..1 -> 180 Hz .. 4500 Hz */
+    float   eq_mid_q;     /* 0..1 -> Q 0.50 .. 4.00 */
+    float   eq_hi_db;     /* -12.0 .. +12.0 dB (High Shelf gain) */
+    float   eq_hi_hz;     /* 0..1 -> 2500 Hz .. 10000 Hz */
+
     /* Noise / Geiger / Preamp texture & BBD Chorus */
     float noise_lvl;      /* 0..1 */
     uint8_t noise_mode;   /* 0 = PINK WIND, 1 = GEIGER CRACKLE, 2 = SUB RUMBLE */
@@ -290,6 +300,7 @@ void helios_midi_sustain_pedal(uint8_t down);
 void helios_capture_scene_b(void);
 void helios_set_morph(float pos);
 void helios_toggle_compare(void);
+void helios_eq_reset(void);
 
 /* Real-time stereo 24-bit render (n = 256 frames, gain = 0..1) */
 void helios_render(int32_t *lr, uint32_t n, float gain);

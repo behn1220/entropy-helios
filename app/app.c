@@ -20,7 +20,8 @@ enum {
     PG_SEQ_R,        /* B_SEQ  (2/2): 5-Step Sequencer Right V5 (K1=STEP NOTE, K2=STEP GATE, K3=CLOCK DIV, K4=OCTAVE) */
     PG_VCF,          /* B_FX   (1/2): Dual Russian Analog VCF (K1=CUTOFF L/R, K2=RESO L/R, K3=DRIVE, K4=MODE) */
     PG_CART,         /* B_FX   (2/2): Magnetic Stereo FX Cartridge (K1=CART TYPE, K2=FX MIX, K3=SHIMMER, K4=DECAY) */
-    PG_PREAMP,       /* B_ENV:        Entropy Symbiosis Preamp & Noise (K1=EXT IN, K2=NOISE LVL, K3=NOISE MODE, K4=CHORUS) */
+    PG_PREAMP,       /* B_ENV (1/2):  Entropy Symbiosis Preamp & Noise (K1=EXT IN, K2=NOISE LVL, K3=NOISE MODE, K4=CHORUS) */
+    PG_EQ,           /* B_ENV (2/2):  3-Band Parametric Master EQ (K1=LOW dB, K2=MID dB, K3=MID FRQ, K4=HIGH dB) */
     PG_MATRIX,       /* B_LFO:        8x8 Modular CV Pin Matrix (K1=SRC ROW, K2=DST COL, K3=PIN STATE, K4=S&H / SLEW) */
     PG_GLOBAL,       /* B_GLO  (1/2): Global Colorway, Tuning & Dual-Core SMP */
     PG_HELP,         /* B_GLO  (2/2): Built-In On-Screen Quick-Help Cheat Sheet */
@@ -39,13 +40,14 @@ static const char *const PG_TITLE[PG_COUNT] = {
     "FX // DUAL ANALOG VCF",
     "FX // FX CARTRIDGE",
     "ENV // PREAMP & NOISE",
+    "ENV // MASTER PARAM EQ",
     "LFO // 8x8 PIN MATRIX",
     "GLO // COLOR & GLOBAL",
     "GLO // QUICK HELP"
 };
 
 static const uint8_t PG_BTN_OF[PG_COUNT] = {
-    B_HOME, B_EDIT, B_EDIT, B_EDIT, B_ARP, B_ARP, B_SEQ, B_SEQ, B_FX, B_FX, B_ENV, B_LFO, B_GLO, B_GLO
+    B_HOME, B_EDIT, B_EDIT, B_EDIT, B_ARP, B_ARP, B_SEQ, B_SEQ, B_FX, B_FX, B_ENV, B_ENV, B_LFO, B_GLO, B_GLO
 };
 
 static const char *const NOTE_NAMES[12] = {
@@ -103,8 +105,8 @@ static void hl_probe_u32(uint32_t arg)
 int app_spk_muted(void) { return ui_spk_mute != 0u; }
 
 /* ---- Persistent Flash Save / Load (OBJ_SETTINGS + 8 Entropy Slots E01..E08 + 16 Pure HW Slots H01..H16) ---- */
-#define HL_SAVE_MAGIC 0x484C3131u /* "HL11" (v1.1: PURE/ENTROPY dual-mode + full per-voice INIT save) */
-#define HL_BANK_MAGIC 0x48423131u /* "HB11" (8-slot Flash Patch Bank) */
+#define HL_SAVE_MAGIC 0x484C3133u /* "HL13" (v1.3: 3-Band Parametric Master EQ + PURE/ENTROPY dual-mode) */
+#define HL_BANK_MAGIC 0x48423133u /* "HB13" (8-slot Flash Patch Bank) */
 typedef struct {
     uint32_t magic;
     uint8_t patch, evolve, root, scale, bpm, key_mode, cart_type, pin_preset;
@@ -131,6 +133,8 @@ typedef struct {
     float plate_trim[HL_NPLATES];
     uint8_t cart_lvl_q[HL_NCART];
     uint8_t cart_par_q[HL_NCART];
+    uint8_t eq_on, eq_lo_hz_q, eq_mid_hz_q, eq_mid_q_q, eq_hi_hz_q;
+    int8_t  eq_lo_db_q, eq_mid_db_q, eq_hi_db_q; /* -24..+24 in 0.5 dB steps */
 } hl_save_t;
 
 typedef struct {
@@ -236,6 +240,14 @@ static void hl_make_save(hl_save_t *sv)
         sv->cart_lvl_q[i] = (uint8_t)(br_clampf(st.cart_lvl[i], 0.0f, 1.0f) * 100.0f + 0.5f);
         sv->cart_par_q[i] = (uint8_t)(br_clampf(st.cart_param[i], 0.0f, 1.0f) * 100.0f + 0.5f);
     }
+    sv->eq_on       = st.eq_on & 1u;
+    sv->eq_lo_db_q  = (int8_t)clamp((int32_t)(st.eq_lo_db * 2.0f + (st.eq_lo_db >= 0.0f ? 0.5f : -0.5f)), -24, 24);
+    sv->eq_mid_db_q = (int8_t)clamp((int32_t)(st.eq_mid_db * 2.0f + (st.eq_mid_db >= 0.0f ? 0.5f : -0.5f)), -24, 24);
+    sv->eq_hi_db_q  = (int8_t)clamp((int32_t)(st.eq_hi_db * 2.0f + (st.eq_hi_db >= 0.0f ? 0.5f : -0.5f)), -24, 24);
+    sv->eq_lo_hz_q  = (uint8_t)(br_clampf(st.eq_lo_hz, 0.0f, 1.0f) * 100.0f + 0.5f);
+    sv->eq_mid_hz_q = (uint8_t)(br_clampf(st.eq_mid_hz, 0.0f, 1.0f) * 100.0f + 0.5f);
+    sv->eq_mid_q_q  = (uint8_t)(br_clampf(st.eq_mid_q, 0.0f, 1.0f) * 100.0f + 0.5f);
+    sv->eq_hi_hz_q  = (uint8_t)(br_clampf(st.eq_hi_hz, 0.0f, 1.0f) * 100.0f + 0.5f);
 }
 
 static void hl_apply_save(const hl_save_t *sv)
@@ -315,6 +327,14 @@ static void hl_apply_save(const hl_save_t *sv)
         st.cart_lvl[i]   = br_clampf((float)sv->cart_lvl_q[i] * 0.01f, 0.0f, 1.0f);
         st.cart_param[i] = br_clampf((float)sv->cart_par_q[i] * 0.01f, 0.0f, 1.0f);
     }
+    st.eq_on     = sv->eq_on & 1u;
+    st.eq_lo_db  = br_clampf((float)sv->eq_lo_db_q * 0.5f, -12.0f, 12.0f);
+    st.eq_mid_db = br_clampf((float)sv->eq_mid_db_q * 0.5f, -12.0f, 12.0f);
+    st.eq_hi_db  = br_clampf((float)sv->eq_hi_db_q * 0.5f, -12.0f, 12.0f);
+    st.eq_lo_hz  = br_clampf((float)sv->eq_lo_hz_q * 0.01f, 0.0f, 1.0f);
+    st.eq_mid_hz = br_clampf((float)sv->eq_mid_hz_q * 0.01f, 0.0f, 1.0f);
+    st.eq_mid_q  = br_clampf((float)sv->eq_mid_q_q * 0.01f, 0.0f, 1.0f);
+    st.eq_hi_hz  = br_clampf((float)sv->eq_hi_hz_q * 0.01f, 0.0f, 1.0f);
     helios_set_state(&st);
 }
 
@@ -652,6 +672,15 @@ static void hl_sysex_send_state(void)
         for (c = 0; c < HL_NSTEPS; c++) e[q++] = st.mel[r].step_acc[c] & 1u;
         for (c = 0; c < HL_NSTEPS; c++) e[q++] = (uint8_t)clamp((int)(st.mel[r].step_prob[c] ? st.mel[r].step_prob[c] : 10u), 1, 10);
     }
+    /* Studio 3-Band Parametric Master EQ (8 bytes: on, lo_db, lo_hz, mid_db, mid_hz, mid_q, hi_db, hi_hz) */
+    e[q++] = st.eq_on & 1u;
+    e[q++] = hl_q7((st.eq_lo_db + 12.0f) * (1.0f / 24.0f));
+    e[q++] = hl_q7(st.eq_lo_hz);
+    e[q++] = hl_q7((st.eq_mid_db + 12.0f) * (1.0f / 24.0f));
+    e[q++] = hl_q7(st.eq_mid_hz);
+    e[q++] = hl_q7(st.eq_mid_q);
+    e[q++] = hl_q7((st.eq_hi_db + 12.0f) * (1.0f / 24.0f));
+    e[q++] = hl_q7(st.eq_hi_hz);
     e[q++] = 0xF7u;
     plat_sysex_send(e, q);
 }
@@ -762,6 +791,15 @@ int app_sysex(const uint8_t *p, uint32_t n)
                 return 1;
             case 56: helios_toggle_compare(); return 1;
             case 57: helios_panic(); return 1;
+            case 58: st.eq_lo_db  = vn * 24.0f - 12.0f; break;
+            case 59: st.eq_mid_db = vn * 24.0f - 12.0f; break;
+            case 60: st.eq_mid_hz = vn; break;
+            case 61: st.eq_hi_db  = vn * 24.0f - 12.0f; break;
+            case 62: st.eq_lo_hz  = vn; break;
+            case 63: st.eq_mid_q  = vn; break;
+            case 64: st.eq_hi_hz  = vn; break;
+            case 65: st.eq_on     = val & 1u; break;
+            case 66: helios_eq_reset(); hl_sysex_send_state(); return 1;
             default: break;
             }
             helios_set_state(&st);
@@ -1496,6 +1534,58 @@ static void hl_knob_info(const helios_state_t *st, unsigned page, unsigned knob,
         }
         break;
 
+    case PG_EQ:
+        if (knob == 0u) {
+            if (ui_sel_alt) {
+                uint32_t hz = (uint32_t)(50.0f * fm_powf(6.0f, br_clampf(st->eq_lo_hz, 0.0f, 1.0f)) + 0.5f);
+                hl_cat(lbl, "LOW FRQ");
+                hl_cat_u(val, hz); hl_cat(val, "Hz");
+                *norm = st->eq_lo_hz;
+            } else {
+                int db = (int)(st->eq_lo_db + (st->eq_lo_db >= 0.0f ? 0.5f : -0.5f));
+                hl_cat(lbl, "LOW GAIN");
+                hl_cat_i(val, db); hl_cat(val, "dB");
+                *norm = (st->eq_lo_db + 12.0f) * (1.0f / 24.0f);
+            }
+        } else if (knob == 1u) {
+            if (ui_sel_alt) {
+                uint32_t q10 = (uint32_t)(5.0f * fm_powf(8.0f, br_clampf(st->eq_mid_q, 0.0f, 1.0f)) + 0.5f);
+                hl_cat(lbl, "MID Q");
+                hl_cat_u(val, q10 / 10u); hl_cat(val, "."); hl_cat_u(val, q10 % 10u);
+                *norm = st->eq_mid_q;
+            } else {
+                int db = (int)(st->eq_mid_db + (st->eq_mid_db >= 0.0f ? 0.5f : -0.5f));
+                hl_cat(lbl, "MID GAIN");
+                hl_cat_i(val, db); hl_cat(val, "dB");
+                *norm = (st->eq_mid_db + 12.0f) * (1.0f / 24.0f);
+            }
+        } else if (knob == 2u) {
+            if (ui_sel_alt) {
+                uint32_t hz = (uint32_t)(2500.0f * fm_powf(4.0f, br_clampf(st->eq_hi_hz, 0.0f, 1.0f)) + 0.5f);
+                hl_cat(lbl, "HI FRQ");
+                hl_cat_u(val, hz / 1000u); hl_cat(val, "."); hl_cat_u(val, (hz % 1000u) / 100u); hl_cat(val, "k");
+                *norm = st->eq_hi_hz;
+            } else {
+                uint32_t hz = (uint32_t)(180.0f * fm_powf(25.0f, br_clampf(st->eq_mid_hz, 0.0f, 1.0f)) + 0.5f);
+                hl_cat(lbl, "MID FRQ");
+                if (hz >= 1000u) { hl_cat_u(val, hz / 1000u); hl_cat(val, "."); hl_cat_u(val, (hz % 1000u) / 100u); hl_cat(val, "k"); }
+                else             { hl_cat_u(val, hz); hl_cat(val, "Hz"); }
+                *norm = st->eq_mid_hz;
+            }
+        } else {
+            if (ui_sel_alt) {
+                hl_cat(lbl, "EQ STATE");
+                hl_cat(val, st->eq_on ? "ACTIVE" : "BYPASS");
+                *norm = st->eq_on ? 1.0f : 0.0f;
+            } else {
+                int db = (int)(st->eq_hi_db + (st->eq_hi_db >= 0.0f ? 0.5f : -0.5f));
+                hl_cat(lbl, "HI GAIN");
+                hl_cat_i(val, db); hl_cat(val, "dB");
+                *norm = (st->eq_hi_db + 12.0f) * (1.0f / 24.0f);
+            }
+        }
+        break;
+
     case PG_MATRIX:
         if (knob == 0u) {
             if (ui_sel_alt) {
@@ -1823,6 +1913,23 @@ static void hl_turn_knob(unsigned page, unsigned knob, int32_t d)
         } else {
             if (ui_sel_alt) st.master_tape = br_clampf(st.master_tape + step, 0.0f, 1.0f);
             else            st.chorus_mix  = br_clampf(st.chorus_mix + step, 0.0f, 1.0f);
+        }
+        helios_set_state(&st);
+        break;
+
+    case PG_EQ:
+        if (knob == 0u) {
+            if (ui_sel_alt) st.eq_lo_hz = br_clampf(st.eq_lo_hz + step, 0.0f, 1.0f);
+            else            st.eq_lo_db = br_clampf(st.eq_lo_db + (float)d * 0.5f, -12.0f, 12.0f);
+        } else if (knob == 1u) {
+            if (ui_sel_alt) st.eq_mid_q  = br_clampf(st.eq_mid_q + step, 0.0f, 1.0f);
+            else            st.eq_mid_db = br_clampf(st.eq_mid_db + (float)d * 0.5f, -12.0f, 12.0f);
+        } else if (knob == 2u) {
+            if (ui_sel_alt) st.eq_hi_hz  = br_clampf(st.eq_hi_hz + step, 0.0f, 1.0f);
+            else            st.eq_mid_hz = br_clampf(st.eq_mid_hz + step, 0.0f, 1.0f);
+        } else {
+            if (ui_sel_alt) st.eq_on    = (d > 0) ? 1u : 0u;
+            else            st.eq_hi_db = br_clampf(st.eq_hi_db + (float)d * 0.5f, -12.0f, 12.0f);
         }
         helios_set_state(&st);
         break;
@@ -2420,10 +2527,55 @@ static void hl_paint_zoomed_module(const helios_state_t *st, int32_t by, uint32_
         hl_stext(16, 112, by, &FONT_T, "BBD CHORUS", C42_CYAN);
         hl_srect(98, 114, 124, 8, by, RGB(14, 18, 22));
         hl_srect(98, 114, (int32_t)(br_clampf(st->chorus_mix, 0.0f, 1.0f) * 124.0f), 8, by, C42_CYAN);
+    } else if (ui_page == PG_EQ) {
+        /* Live Graphical 3-Band Parametric Master EQ Response Curve (20 Hz .. 20 kHz log scale) */
+        float fl = 50.0f * fm_powf(6.0f, br_clampf(st->eq_lo_hz, 0.0f, 1.0f));
+        float fm = 180.0f * fm_powf(25.0f, br_clampf(st->eq_mid_hz, 0.0f, 1.0f));
+        float fh = 2500.0f * fm_powf(4.0f, br_clampf(st->eq_hi_hz, 0.0f, 1.0f));
+        float qm = 0.5f * fm_powf(8.0f, br_clampf(st->eq_mid_q, 0.0f, 1.0f));
+        float lfl = fm_log2f(fl * (1.0f / 20.0f)) * (1.0f / 9.96578f);
+        float lfm = fm_log2f(fm * (1.0f / 20.0f)) * (1.0f / 9.96578f);
+        float lfh = fm_log2f(fh * (1.0f / 20.0f)) * (1.0f / 9.96578f);
+        hl_hw_glass(8, 69, 224, 65, by);
+        /* 0 dB center line + 100Hz / 1kHz / 10kHz log grid lines */
+        hl_srect(10, 102, 220, 1, by, RGB(34, 48, 54));
+        hl_srect(10, 86, 220, 1, by, RGB(18, 24, 28));
+        hl_srect(10, 118, 220, 1, by, RGB(18, 24, 28));
+        hl_srect(61, 71, 1, 61, by, RGB(18, 24, 28));   /* ~100 Hz */
+        hl_srect(134, 71, 1, 61, by, RGB(18, 24, 28));  /* ~1 kHz */
+        hl_srect(207, 71, 1, 61, by, RGB(18, 24, 28));  /* ~10 kHz */
+        hl_stext(13, 72, by, &FONT_T, "3-BAND PARAM EQ", st->eq_on ? C42_GOLD_BRT : C42_GOLD_DIM);
+        hl_stext(150, 72, by, &FONT_T, st->eq_on ? "ON [REC=0]" : "BYPASSED", st->eq_on ? C42_GREEN : C42_MAGENTA);
+        for (i = 0; i < 218u; i += 2u) {
+            float u = (float)i * (1.0f / 218.0f);
+            float db = 0.0f;
+            if (st->eq_on) {
+                float d_lo = st->eq_lo_db / (1.0f + fm_exp2f((u - lfl) * 14.0f));
+                float dm = (u - lfm) * (3.2f + qm * 3.8f);
+                float d_mid = st->eq_mid_db / (1.0f + dm * dm);
+                float d_hi = st->eq_hi_db / (1.0f + fm_exp2f((lfh - u) * 14.0f));
+                db = br_clampf(d_lo + d_mid + d_hi, -14.0f, 14.0f);
+            }
+            int32_t sy = 102 - (int32_t)(db * 1.95f);
+            if (sy < 74) sy = 74;
+            if (sy > 130) sy = 130;
+            if (sy < 102) hl_srect(11 + (int32_t)i, sy + 2, 2, 102 - sy - 2, by, st->eq_on ? RGB(16, 44, 48) : RGB(22, 22, 24));
+            else if (sy > 102) hl_srect(11 + (int32_t)i, 103, 2, sy - 103, by, st->eq_on ? RGB(44, 24, 18) : RGB(22, 22, 24));
+            hl_srect(11 + (int32_t)i, sy, 2, 3, by, st->eq_on ? C42_CYAN : C42_GOLD_DIM);
+        }
+        /* Glowing band nodes (Low = Gold, Mid = Green, High = Cyan) */
+        if (st->eq_on) {
+            int32_t lx = 11 + (int32_t)(lfl * 216.0f), ly = 102 - (int32_t)(st->eq_lo_db * 1.95f);
+            int32_t mx = 11 + (int32_t)(lfm * 216.0f), my = 102 - (int32_t)(st->eq_mid_db * 1.95f);
+            int32_t hx = 11 + (int32_t)(lfh * 216.0f), hy = 102 - (int32_t)(st->eq_hi_db * 1.95f);
+            hl_srect(lx - 2, clamp(ly, 75, 129) - 2, 5, 5, by, C42_GOLD_BRT);
+            hl_srect(mx - 2, clamp(my, 75, 129) - 2, 5, 5, by, C42_GREEN);
+            hl_srect(hx - 2, clamp(hy, 75, 129) - 2, 5, 5, by, C_WHITE);
+        }
     } else if (ui_page == PG_HELP) {
         /* Built-In On-Screen Quick-Help Cheat Sheet (GLO 2nd Press) */
         hl_hw_glass(8, 69, 224, 147, by);
-        hl_stext(14, 74,  by, &FONT_T, "ENTROPY HELIOS v1.0 // QUICK GUIDE", C42_GOLD_BRT);
+        hl_stext(14, 74,  by, &FONT_T, "ENTROPY HELIOS v1.3 // QUICK GUIDE", C42_GOLD_BRT);
         hl_stext(14, 90,  by, &FONT_T, "SEL       : Toggle Alt Layer (SEL*)", C_WHITE);
         hl_stext(14, 104, by, &FONT_T, "FX x2     : 16 Stackable Carts", C42_CYAN);
         hl_stext(14, 118, by, &FONT_T, "  K2=ON/OFF, REC=Solo Current Cart", C42_GOLD_MID);
@@ -2509,7 +2661,7 @@ static void hl_paint_band0(const helios_state_t *st)
         const hl_theme_t *th = &HL_THEMES[ui_theme % 5u];
         hl_hw_panel(2, 1, 236, 16, 0, th->pr0, th->pg0, th->pb0, th->pr1, th->pg1, th->pb1, th->rim, 0);
         cv_rect(4, 3, 2, 12, th->text_sec);
-        cv_text(9, 3, &FONT_T, "HELIOS 1.2", th->text_pri);
+        cv_text(9, 3, &FONT_T, "HELIOS 1.3", th->text_pri);
     }
 
     /* Dual-Core SMP Status Pill (CPU0 + CPU1 Load) */
@@ -3363,6 +3515,10 @@ void app_frame(void)
             st.cart_mask = (uint16_t)(1u << (st.cart_type & 15u));
             helios_set_state(&st);
             app_say("STACK SOLO", helios_cart_name(st.cart_type));
+        } else if (ui_page == PG_EQ && !ui_sel_alt) {
+            /* One-click Flat Reset on Master Parametric EQ */
+            helios_eq_reset();
+            app_say("MASTER EQ", "RESET FLAT 0dB");
         } else if (ui_sel_alt) {
             /* 1-Tap Operating Mode Toggle: ENTROPY (Generative ON) <-> PURE (16 Blank INIT HW Slots) */
             hl_set_mode(!ui_pure_mode);
@@ -3400,7 +3556,7 @@ void app_frame(void)
         }
     }
     if (pressed & (1u << B_ENV)) {
-        hl_set_page((ui_page == PG_PREAMP) ? PG_HOME : PG_PREAMP);
+        hl_set_page((ui_page == PG_PREAMP) ? PG_EQ : (ui_page == PG_EQ) ? PG_HOME : PG_PREAMP);
     }
     if (pressed & (1u << B_LFO)) {
         hl_set_page((ui_page == PG_MATRIX) ? PG_HOME : PG_MATRIX);
