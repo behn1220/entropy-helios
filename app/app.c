@@ -72,6 +72,10 @@ static uint8_t  ui_zoom_from  = 0u; /* Previous ui_page before zoom transition *
 static uint8_t  ui_act_knob   = 0u; /* Most recently turned knob (0..3) for glow highlight */
 static uint32_t ui_act_until  = 0u; /* Timestamp until active-knob glow highlight expires */
 static uint32_t ui_splash_end = 0u; /* 1800ms live-animated P31 phosphor CRT boot splash timer */
+static uint8_t  ui_studio_linked = 0u; /* 1 = WebMIDI Studio has connected/synced over USB */
+static uint8_t  ui_sysex_dirty   = 0u; /* 1 = Physical FM-1 control changed; push live sync to Studio */
+static uint32_t ui_sysex_last_ms = 0u; /* Throttle live FM-1 -> Studio SysEx push (~110 ms) */
+static uint32_t ui_usb_sess_last = 0u; /* Track USB session so cable unplug cleanly unlinks Studio */
 static uint8_t hl_cpu2_state = 0u; /* 0=not tried, 1=Core 1 UP, 2=no report, 3=skipped, 4=float fail */
 
 static void hl_set_page(uint8_t next_pg)
@@ -129,6 +133,7 @@ typedef struct {
     int8_t  d_pan[HL_NDRONE];
     uint8_t d_sub[HL_NDRONE];
     uint8_t m_wave[HL_NMEL], m_lvl_q[HL_NMEL], m_seq_run[HL_NMEL];
+    uint8_t m_phase_q[HL_NMEL], m_drift[HL_NMEL];
     int8_t pin_matrix[HL_NMOD_SRC][HL_NMOD_DST];
     float plate_trim[HL_NPLATES];
     uint8_t cart_lvl_q[HL_NCART];
@@ -230,6 +235,8 @@ static void hl_make_save(hl_save_t *sv)
         sv->m_wave[i]    = st.mel[i].wave;
         sv->m_lvl_q[i]   = (uint8_t)(br_clampf(st.mel[i].level, 0.0f, 1.0f) * 100.0f + 0.5f);
         sv->m_seq_run[i] = st.mel[i].seq_run & 1u;
+        sv->m_phase_q[i] = (uint8_t)(br_clampf(st.mel[i].seq_phase, 0.0f, 1.0f) * 120.0f + 0.5f);
+        sv->m_drift[i]   = st.mel[i].seq_drift & 1u;
     }
     for (i = 0; i < HL_NMOD_SRC; i++)
         for (j = 0; j < HL_NMOD_DST; j++)
@@ -314,9 +321,11 @@ static void hl_apply_save(const hl_save_t *sv)
         st.drone[i].sub        = sv->d_sub[i] & 1u;
     }
     for (i = 0; i < HL_NMEL; i++) {
-        st.mel[i].wave    = sv->m_wave[i] % 6u;
-        st.mel[i].level   = br_clampf((float)sv->m_lvl_q[i] * 0.01f, 0.0f, 1.0f);
-        st.mel[i].seq_run = sv->m_seq_run[i] & 1u;
+        st.mel[i].wave      = sv->m_wave[i] % 6u;
+        st.mel[i].level     = br_clampf((float)sv->m_lvl_q[i] * 0.01f, 0.0f, 1.0f);
+        st.mel[i].seq_run   = sv->m_seq_run[i] & 1u;
+        st.mel[i].seq_phase = br_clampf((float)sv->m_phase_q[i] * (1.0f / 120.0f), 0.0f, 1.0f);
+        st.mel[i].seq_drift = sv->m_drift[i] & 1u;
     }
     for (i = 0; i < HL_NMOD_SRC; i++)
         for (j = 0; j < HL_NMOD_DST; j++)
@@ -681,6 +690,11 @@ static void hl_sysex_send_state(void)
     e[q++] = hl_q7(st.eq_mid_q);
     e[q++] = hl_q7((st.eq_hi_db + 12.0f) * (1.0f / 24.0f));
     e[q++] = hl_q7(st.eq_hi_hz);
+    /* Dual Sequencer Phase (0..120 in 3° steps = 0..360°) & Reich Drift (0/1) — 4 bytes (total 180 B) */
+    e[q++] = (uint8_t)clamp((int)(st.mel[0].seq_phase * 120.0f + 0.5f), 0, 120);
+    e[q++] = (uint8_t)clamp((int)(st.mel[1].seq_phase * 120.0f + 0.5f), 0, 120);
+    e[q++] = st.mel[0].seq_drift & 1u;
+    e[q++] = st.mel[1].seq_drift & 1u;
     e[q++] = 0xF7u;
     plat_sysex_send(e, q);
 }
@@ -695,6 +709,10 @@ int app_sysex(const uint8_t *p, uint32_t n)
     }
     if (!p || n < 4u || p[0] != 0x7Du || p[1] != 0x48u || p[2] != 0x4Cu)
         return 0;
+    ui_studio_linked = 1u;
+#ifdef PLAT_TICKS_PER_US
+    ui_usb_sess_last = plat_usb_session();
+#endif
     {
         uint8_t cmd = p[3];
         if (cmd == 0x01u) {
@@ -741,7 +759,10 @@ int app_sysex(const uint8_t *p, uint32_t n)
             case 21: st.chord_mode  = val % 6u; break;
             case 22: helios_set_perf_mode(val % 3u); return 1;
             case 23: st.vcf_link    = val & 1u; break;
-            case 24: st.playing     = val & 1u; break;
+            case 24:
+                st.playing = val & 1u;
+                if (st.playing) { helios_set_state(&st); helios_seq_sync(); return 1; }
+                break;
             case 25: st.evolve      = val & 3u; break;
             case 26: {
                 static const char *const tn[5] = {"BLACK", "CREAM", "AMBER YEL", "COBALT", "OLIVE"};
@@ -800,6 +821,7 @@ int app_sysex(const uint8_t *p, uint32_t n)
             case 64: st.eq_hi_hz  = vn; break;
             case 65: st.eq_on     = val & 1u; break;
             case 66: helios_eq_reset(); hl_sysex_send_state(); return 1;
+            case 67: helios_seq_sync(); return 1;
             default: break;
             }
             helios_set_state(&st);
@@ -861,6 +883,8 @@ int app_sysex(const uint8_t *p, uint32_t n)
                 else           { st.mel[mi].seq_run = 1u; st.mel[mi].hold = 1u; st.mel[mi].seq_div = (val - 1u) % 7u; }
                 break;
             case 5: st.mel[mi].seq_len = (uint8_t)clamp((int)val, 2, (int)HL_NSTEPS); break;
+            case 6: st.mel[mi].seq_phase = br_clampf((float)val * (1.0f / 120.0f), 0.0f, 1.0f); break;
+            case 7: st.mel[mi].seq_drift = val & 1u; break;
             default: break;
             }
             helios_set_state(&st);
@@ -993,6 +1017,8 @@ static void hl_handle_midi(uint32_t pkt)
         case 20: st.playing = (d2 >= 64u) ? 1u : 0u; break;
         case 21: helios_retune_drones_to_root((uint8_t)((d2 * 12u) / 128u)); return;
         case 22: hl_load_slot(((uint32_t)d2 * HL_NTOTAL_P) / 128u); return;
+        case 24: st.mel[0].seq_phase = br_clampf((float)d2 * (1.0f / 120.0f), 0.0f, 1.0f); break;
+        case 25: st.mel[1].seq_phase = br_clampf((float)d2 * (1.0f / 120.0f), 0.0f, 1.0f); break;
         case 30:
         case 74: st.vcf_cut[0] = v; if (st.vcf_link) st.vcf_cut[1] = v; break;
         case 75: st.vcf_cut[1] = v; st.vcf_link = 0u; break;
@@ -1391,9 +1417,22 @@ static void hl_knob_info(const helios_state_t *st, unsigned page, unsigned knob,
                 *norm = m->seq_run ? ((float)((m->seq_div % 7u) + 1u) * (1.0f / 7.0f)) : 0.0f;
             }
         } else {
-            hl_cat(lbl, "OCTAVE");
-            hl_cat_i(val, (int)m->octave);
-            *norm = (float)(m->octave + 2) * 0.25f;
+            if (ui_sel_alt) {
+                hl_cat(lbl, "SEQ PHS");
+                if (m->seq_drift) {
+                    hl_cat(val, "DRIFT");
+                    *norm = 1.0f;
+                } else {
+                    unsigned deg = (unsigned)(m->seq_phase * 360.0f + 0.5f);
+                    hl_cat_u(val, deg);
+                    hl_cat(val, " DEG");
+                    *norm = m->seq_phase;
+                }
+            } else {
+                hl_cat(lbl, "OCTAVE");
+                hl_cat_i(val, (int)m->octave);
+                *norm = (float)(m->octave + 2) * 0.25f;
+            }
         }
         break;
     }
@@ -1836,7 +1875,20 @@ static void hl_turn_knob(unsigned page, unsigned knob, int32_t d)
                 }
             }
         } else {
-            m->octave = (int8_t)clamp((int32_t)m->octave + d, -2, 2);
+            if (ui_sel_alt) {
+                int cur_s = m->seq_drift ? 24 : (int)(m->seq_phase * 24.0f + 0.5f);
+                int nxt_s = cur_s + (int)d;
+                if (nxt_s < 0) nxt_s = 0;
+                if (nxt_s > 24) nxt_s = 24;
+                if (nxt_s == 24) {
+                    m->seq_drift = 1u;
+                } else {
+                    m->seq_drift = 0u;
+                    m->seq_phase = (float)nxt_s * (1.0f / 24.0f);
+                }
+            } else {
+                m->octave = (int8_t)clamp((int32_t)m->octave + d, -2, 2);
+            }
         }
         helios_set_state(&st);
         break;
@@ -3466,6 +3518,7 @@ void app_frame(void)
                 app_say(s_lbl, s_val);
                 if (mi == 0u) ui_sel_step_l = (uint8_t)((si + 1u) % HL_NSTEPS);
                 else          ui_sel_step_r = (uint8_t)((si + 1u) % HL_NSTEPS);
+                ui_sysex_dirty = 1u;
             }
             helios_fm1_key_on(k, vel, prs);
             if (ui_midi_out) {
@@ -3495,6 +3548,9 @@ void app_frame(void)
     }
 
     /* 2. Illuminated Section Push-Buttons */
+    if (pressed & ((1u << B_PLAY) | (1u << B_REC) | (1u << B_OCTDN) | (1u << B_OCTUP) | (1u << B_ARP) | (1u << B_FX))) {
+        ui_sysex_dirty = 1u;
+    }
     if (pressed & (1u << B_PLAY)) {
         helios_state_t st;
         if (ui_sel_alt) {
@@ -3519,6 +3575,10 @@ void app_frame(void)
             /* One-click Flat Reset on Master Parametric EQ */
             helios_eq_reset();
             app_say("MASTER EQ", "RESET FLAT 0dB");
+        } else if ((ui_page == PG_SEQ_L || ui_page == PG_SEQ_R) && !ui_sel_alt) {
+            /* One-click Phase/Bar Re-Sync on Dual 5-Step Sequencers */
+            helios_seq_sync();
+            app_say("DUAL SEQ", "SYNC STEP 1");
         } else if (ui_sel_alt) {
             /* 1-Tap Operating Mode Toggle: ENTROPY (Generative ON) <-> PURE (16 Blank INIT HW Slots) */
             hl_set_mode(!ui_pure_mode);
@@ -3609,6 +3669,7 @@ void app_frame(void)
                 plat_store_save(OBJ_SETTINGS, &sv, sizeof sv);
                 save_sig_last = hl_calc_save_sig(&sv);
                 app_say("FACTORY RESET", "ALL BANKS CLEAN");
+                ui_sysex_dirty = 1u;
             } else if (held_ms >= 1000u) {
                 char cd[16];
                 cd[0] = 0;
@@ -3646,6 +3707,7 @@ void app_frame(void)
                         app_say("PATCH RESET", cur_slot_idx >= HL_NPATCHES ? "ENTROPY SLOT" : helios_patch_name(st.patch));
                     }
                 }
+                ui_sysex_dirty = 1u;
             }
             save_hold_t0 = 0u;
             save_hold_fired = 0u;
@@ -3681,6 +3743,7 @@ void app_frame(void)
     /* 3. Physical Rotary Encoders: PRESET, SELECT, ALGO, K1..K4 */
     d = plat_enc(EN_PRESET);
     if (d) {
+        ui_sysex_dirty = 1u;
         if (ui_sel_alt) {
             helios_state_t st;
             helios_get_state(&st);
@@ -3733,6 +3796,7 @@ void app_frame(void)
             helios_set_evolve((uint8_t)(((int)st.evolve + 40 + dir) & 3));
             helios_get_state(&st);
             app_say("HELIOS EVOLVE", helios_evolve_name(st.evolve));
+            ui_sysex_dirty = 1u;
         }
     }
 
@@ -3740,6 +3804,7 @@ void app_frame(void)
     if (d) {
         helios_state_t st;
         int dir = (int)d;
+        ui_sysex_dirty = 1u;
         helios_get_state(&st);
         if (ui_sel_alt) {
             helios_set_perf_mode((uint8_t)(((int)st.perf_mode + 30 + dir) % 3));
@@ -3768,7 +3833,28 @@ void app_frame(void)
 
     for (k = 0; k < 4u; k++) {
         d = plat_enc(EN_K1 + (int)k);
-        if (d) hl_turn_knob(ui_page, k, d);
+        if (d) {
+            hl_turn_knob(ui_page, k, d);
+            ui_sysex_dirty = 1u;
+        }
+    }
+
+    /* Live Hardware -> WebMIDI Studio Auto-Sync (~110 ms throttled, zero overhead when Studio not connected) */
+#ifdef PLAT_TICKS_PER_US
+    if (ui_studio_linked && plat_usb_session() != ui_usb_sess_last) {
+        ui_studio_linked = 0u;
+        ui_sysex_dirty = 0u;
+    }
+#endif
+    if (ui_studio_linked && ui_sysex_dirty && (uint32_t)(now - ui_sysex_last_ms) >= 110u) {
+#ifdef PLAT_TICKS_PER_US
+        if (plat_sysex_room() >= 280u)
+#endif
+        {
+            ui_sysex_dirty = 0u;
+            ui_sysex_last_ms = now;
+            hl_sysex_send_state();
+        }
     }
 
     /* 4. Paint 240x240 Screen, Update Screen Reader, Update LEDs & Save Tick */

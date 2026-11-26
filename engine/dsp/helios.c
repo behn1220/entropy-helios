@@ -308,7 +308,8 @@ static struct {
     /* 2 Melodic voices */
     float m_ph1[HL_NMEL], m_ph2[HL_NMEL], m_sub[HL_NMEL], m_vib_ph[HL_NMEL];
     float m_last_sig[HL_NMEL];
-    float m_seq_ph[HL_NMEL];
+    float seq_master_beats;
+    float m_drift_ph[HL_NMEL];
     int8_t m_pend_dir[HL_NMEL];
     uint8_t duo_turn;
 
@@ -1144,6 +1145,8 @@ void helios_load_patch(uint32_t idx)
         S.mel[i].seq_run   = p->m_seq[i];
         S.mel[i].seq_div   = p->m_div[i];
         S.mel[i].seq_len   = HL_NSTEPS;
+        S.mel[i].seq_phase = 0.0f;
+        S.mel[i].seq_drift = 0u;
         for (s = 0; s < HL_NSTEPS; s++) {
             S.mel[i].steps[s] = p->m_steps[i][s];
             S.mel[i].step_gate[s] = 1u;
@@ -1155,6 +1158,7 @@ void helios_load_patch(uint32_t idx)
         S.mel[i].press     = 0.35f;
         S.mel[i].cur_note  = hl_plate_to_note(S.root, S.scale, S.mel[i].cur_plate, S.mel[i].octave);
     }
+    helios_seq_sync();
     for (i = 0; i < 2u; i++) {
         S.vcf_cut[i]  = p->vcf_cut[i];
         S.vcf_res[i]  = p->vcf_res[i];
@@ -1403,13 +1407,16 @@ void helios_load_init(uint8_t pure)
         S.mel[i].attack  = 0.12f;
         S.mel[i].release = 0.50f;
         S.mel[i].vibrato = 0.0f;
-        S.mel[i].seq_run = 0u;
-        S.mel[i].seq_len = HL_NSTEPS;
-        S.mel[i].hold    = 0u;
-        S.mel[i].env     = 0.0f;
-        D.m_gate[i]      = 0u;
-        D.m_key[i]       = -1;
+        S.mel[i].seq_run   = 0u;
+        S.mel[i].seq_len   = HL_NSTEPS;
+        S.mel[i].seq_phase = 0.0f;
+        S.mel[i].seq_drift = 0u;
+        S.mel[i].hold      = 0u;
+        S.mel[i].env       = 0.0f;
+        D.m_gate[i]        = 0u;
+        D.m_key[i]         = -1;
     }
+    helios_seq_sync();
     D.ev_timer      = 0.0f;
     D.ev_freeze_t   = 0.0f;
     D.ev_mel_rest_t = 0.0f;
@@ -1616,16 +1623,22 @@ void helios_midi_clock(uint32_t now_ms)
     D.clk_last_ms = now_ms;
 }
 
-void helios_midi_start(void)
+void helios_seq_sync(void)
 {
     uint32_t v;
-    S.playing = 1u;
+    D.seq_master_beats = 239.999f;
     for (v = 0; v < HL_NMEL; v++) {
         S.mel[v].cur_step = 0u;
-        D.m_seq_ph[v] = 0.0f;
+        D.m_drift_ph[v] = 0.0f;
     }
     D.arp_ph = 0.0f;
     D.arp_idx = 0;
+}
+
+void helios_midi_start(void)
+{
+    S.playing = 1u;
+    helios_seq_sync();
 }
 
 void helios_midi_stop(void)
@@ -1702,7 +1715,7 @@ void helios_step_patch(int dir)
     helios_load_patch((uint32_t)next);
 }
 
-void helios_toggle_play(void)     { S.playing ^= 1u; }
+void helios_toggle_play(void)     { S.playing ^= 1u; if (S.playing) helios_seq_sync(); }
 void helios_set_evolve(uint8_t e) { S.evolve = e & 3u; }
 void helios_cycle_evolve(void)    { S.evolve = (S.evolve + 1u) & 3u; }
 
@@ -2843,20 +2856,28 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
         }
     }
 
-    /* 3B. Advance Polymetric Dual 5-Step Analog Sequencers (GEN mode) or Direct Playable Envelopes (HYBRID / PLAY 8V) */
+    /* 3B. Advance Phase-Locked Dual 5-Step Analog Sequencers (GEN mode) or Direct Playable Envelopes (HYBRID / PLAY 8V) */
     {
         static const float DIV_MUL[7] = {0.25f, 0.5f, 1.0f, 2.0f, 1.0f, 0.75f, 1.25f};
         float bps = (float)(S.bpm < 30u ? 30u : S.bpm) * (1.0f / 60.0f);
+        float t0 = D.seq_master_beats;
+        float t1 = t0 + (S.playing ? (bps * dt_block) : 0.0f);
+        D.seq_master_beats = (t1 >= 240.0f) ? (t1 - 240.0f) : t1;
         for (v = 0; v < HL_NMEL; v++) {
             hl_mel_cfg_t *m = &S.mel[v];
             uint8_t gate_on = m->hold;
             uint8_t slen = (m->seq_len >= 2u && m->seq_len <= HL_NSTEPS) ? m->seq_len : HL_NSTEPS;
             float tgt_note;
             if (S.perf_mode == HL_PERF_GEN && m->seq_run) {
-                float rate = bps * DIV_MUL[m->seq_div % 7u];
-                D.m_seq_ph[v] += rate * dt_block;
-                if (D.m_seq_ph[v] >= 1.0f) {
-                    D.m_seq_ph[v] -= 1.0f;
+                float mul = DIV_MUL[m->seq_div % 7u];
+                float ph_set = br_clampf(m->seq_phase, 0.0f, 1.0f);
+                float d0 = D.m_drift_ph[v];
+                float d1 = (m->seq_drift && S.playing) ? (d0 + (bps * mul * 0.025f) * dt_block) : d0;
+                uint32_t b0 = (uint32_t)(t0 * mul - (ph_set + d0) + 60.0f);
+                uint32_t b1 = (uint32_t)(t1 * mul - (ph_set + d1) + 60.0f);
+                if (d1 >= (float)slen) d1 -= (float)slen;
+                D.m_drift_ph[v] = d1;
+                if (b1 > b0) {
                     if (m->seq_div == 6u) {
                         /* RANDOM */
                         m->cur_step = (uint8_t)(br_rand(&D.rng[0]) % slen);
@@ -2868,11 +2889,11 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
                         if (nxt < 0) nxt = 0;
                         m->cur_step = (uint8_t)nxt;
                     } else if (m->seq_div == 4u) {
-                        /* REVERSE */
-                        m->cur_step = (uint8_t)((m->cur_step + slen - 1u) % slen);
+                        /* REVERSE (phase-locked to master bar) */
+                        m->cur_step = (uint8_t)((slen - (b1 % slen)) % slen);
                     } else {
-                        /* FORWARD */
-                        m->cur_step = (uint8_t)((m->cur_step + 1u) % slen);
+                        /* FORWARD (phase-locked to master bar so V4 & V5 align step-for-step) */
+                        m->cur_step = (uint8_t)(b1 % slen);
                     }
                     {
                         uint8_t stp = m->cur_step % HL_NSTEPS;

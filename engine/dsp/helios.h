@@ -104,6 +104,8 @@ typedef struct {
     uint8_t seq_run;      /* 0 = manual touch plates, 1 = 5-step sequencer active */
     uint8_t seq_div;      /* clock division: 0=1/1, 1=1/2, 2=1/4, 3=1/8, 4=REV, 5=PEND, 6=RND */
     uint8_t seq_len;      /* polymetric step length: 2..5 steps */
+    float   seq_phase;    /* 0..1: step timing phase offset (0 = 0° unison, 0.5 = 180° ping-pong hocket) */
+    uint8_t seq_drift;    /* 0 = phase-locked to master beat grid, 1 = continuous Reich phase slip */
     uint8_t steps[HL_NSTEPS];     /* plate index 0..11 for each of the 5 steps */
     uint8_t step_gate[HL_NSTEPS]; /* 1 = gate active, 0 = step muted/rest */
     uint8_t step_prob[HL_NSTEPS]; /* 1..10 = 10%..100% trigger probability per step (default 10 = 100%) */
@@ -301,6 +303,7 @@ void helios_capture_scene_b(void);
 void helios_set_morph(float pos);
 void helios_toggle_compare(void);
 void helios_eq_reset(void);
+void helios_seq_sync(void);
 
 /* Real-time stereo 24-bit render (n = 256 frames, gain = 0..1) */
 void helios_render(int32_t *lr, uint32_t n, float gain);
