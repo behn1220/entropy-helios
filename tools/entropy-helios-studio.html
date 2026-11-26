@@ -182,6 +182,22 @@ body{
   padding:6px 11px; font-size:12px; font-weight:700; color:var(--well-green);
   box-shadow:inset 0 2px 6px rgba(0,0,0,0.7);
 }
+.midi-leds{display:inline-flex; align-items:center; gap:5px; margin-left:4px; padding-left:7px; border-left:1px solid var(--bdr); font-size:9px; font-weight:800; letter-spacing:.5px; color:var(--well-dim);}
+.midi-led{display:inline-flex; align-items:center; gap:3px;}
+.midi-led i{display:inline-block; width:6px; height:6px; border-radius:50%; background:#252932; border:1px solid rgba(0,0,0,0.65); transition:background .06s, box-shadow .06s;}
+.midi-led.tx-on i{background:#52e88b; box-shadow:0 0 7px #52e88b;}
+.midi-led.rx-on i{background:#49d8eb; box-shadow:0 0 7px #49d8eb;}
+.cpu-oled{
+  display:inline-flex; align-items:center; gap:7px;
+  background:var(--well); border:1px solid var(--bdr); border-radius:7px;
+  padding:6px 10px; font-size:11px; font-weight:800; letter-spacing:.4px; color:var(--well-dim);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,0.7);
+}
+.cpu-bar{width:46px; height:7px; border-radius:4px; background:#141820; border:1px solid rgba(255,255,255,0.08); overflow:hidden;}
+.cpu-fill{height:100%; width:0%; background:#52e88b; transition:width .25s ease, background .25s ease;}
+.cpu-val{min-width:30px; text-align:right; color:var(--well-green); font-variant-numeric:tabular-nums;}
+.global-foot{display:flex; align-items:flex-end; justify-content:space-between; gap:8px; margin-top:auto; padding-top:8px; flex-wrap:wrap;}
+.global-knobs{display:flex; align-items:flex-start; gap:8px; flex-shrink:0;}
 .swatches{display:flex; gap:6px; align-items:center; background:var(--well); padding:5px 8px; border-radius:999px; border:1px solid var(--bdr);}
 .sw{
   width:18px; height:18px; border-radius:50%; border:2px solid rgba(255,255,255,0.2);
@@ -678,7 +694,7 @@ body{
   <div class="brand-block">
     <div class="crt-badge" title="Live Helios CRT Monitor"><canvas id="hdrScope" width="144" height="84"></canvas></div>
     <div>
-      <h1 class="title-main">ENTROPY HELIOS <span style="font-size:12px;opacity:.75;">v1.3.1</span></h1>
+      <h1 class="title-main">ENTROPY HELIOS <span style="font-size:12px;opacity:.75;">v1.3.2</span></h1>
       <div class="title-sub">DUAL-CORE HARDWARE STUDIO • 16-CART STACK FX • 3-BAND PARAM EQ • OPTICAL &amp; PIEZO SENSORS</div>
     </div>
   </div>
@@ -697,10 +713,21 @@ body{
       <button class="sw" data-th="4" data-name="olive" style="background:#6c633d" aria-label="Olive"></button>
     </div>
 
-    <div class="status-oled"><span class="led-dot amber" id="connLed"></span><span id="stat">Disconnected</span></div>
+    <div class="status-oled">
+      <span class="led-dot amber" id="connLed"></span><span id="stat">Disconnected</span>
+      <span class="midi-leds" title="USB-MIDI Activity (TX = Studio to FM-1, RX = FM-1 to Studio)">
+        <span class="midi-led" id="ledTx"><i></i>TX</span>
+        <span class="midi-led" id="ledRx"><i></i>RX</span>
+      </span>
+    </div>
+    <div class="cpu-oled" id="cpuBox" title="Live FM-1 Dual-Core CPU Load (connect FM-1 to monitor)">
+      <span>CPU</span>
+      <div class="cpu-bar"><div class="cpu-fill" id="cpuFill"></div></div>
+      <span class="cpu-val" id="cpuVal">--%</span>
+    </div>
     <button class="hw-btn gold" id="btnConn">Connect FM-1</button>
     <button class="hw-btn cyan" id="btnSync">Sync</button>
-    <button class="hw-btn red sm" id="btnPanic" title="All Notes Off &amp; Flush FX Tails">Panic</button>
+    <button class="hw-btn red sm" id="btnPanic" title="All Notes Off &amp; Flush FX Tails (Esc)">Panic</button>
   </div>
 </header>
 
@@ -721,12 +748,19 @@ body{
     <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
     <div class="mod-hd">
       <div class="mod-title"><span class="mod-bar green"></span>Transport &amp; Global</div>
-      <div style="display:flex;gap:5px;">
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button class="hw-btn sm mag" id="btnRndPatch" title="Musical Randomize (VCF, Spring, FX &amp; in-scale sequencer)">RND</button>
         <button class="hw-btn sm" id="btnResetSlot" title="Reset active preset/slot to clean baseline">Reset</button>
-        <button class="hw-btn sm lit" id="btnPlay"><span class="led-dot green" id="playLed"></span>PLAYING</button>
+        <button class="hw-btn sm" id="btnMute" title="Quick Output Mute without stopping sequencers (M)"><span class="led-dot" id="muteLed"></span>MUTE</button>
+        <button class="hw-btn sm lit" id="btnPlay" title="Start/Stop Engine (Space)"><span class="led-dot green" id="playLed"></span>PLAYING</button>
       </div>
     </div>
-    <div class="ctrl-row" id="rowPatch"><label>Preset</label><select id="selPatch"></select></div>
+    <div class="ctrl-row" id="rowPatch">
+      <label>Preset</label>
+      <button class="hw-btn sm" id="btnPatchPrev" title="Previous Preset" style="padding:4px 7px;">&#9664;</button>
+      <select id="selPatch"></select>
+      <button class="hw-btn sm" id="btnPatchNext" title="Next Preset" style="padding:4px 7px;">&#9654;</button>
+    </div>
     <div class="ctrl-row"><label>Perf / Plates</label>
       <select id="p22"><option value="0">GEN / HW DRONE</option><option value="1">HYBRID SPLIT</option><option value="2">PLAY 8V POLY</option></select>
       <select id="p53" style="max-width:108px" title="Touch Plate Layout"><option value="0">SPLIT 6+6</option><option value="1">DUAL 12</option><option value="2">POLY 2V</option></select>
@@ -744,9 +778,14 @@ body{
       <select id="p20"><option value="0">12-TET</option><option value="1">JUST INT</option><option value="2">PYTHAG</option><option value="3">BOHLEN-P</option><option value="4">MAQAM</option></select>
       <select id="p21"><option value="0">CHORD OFF</option><option value="1">5TH PWR</option><option value="2">MIN 7</option><option value="3">MAJ 9</option><option value="4">SUS 2</option><option value="5">CLUSTER</option></select>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:auto;padding-top:6px;">
-      <div style="flex:1;"><div class="ctrl-row" style="margin:0;"><label style="width:68px;">USB Rec</label><select id="p51"><option value="0">NORMAL</option><option value="1">0dB FULL</option><option value="2">SPK MUTE</option></select></div></div>
-      <div id="knobsGlobal" style="flex-shrink:0;"></div>
+    <div class="global-foot">
+      <div style="flex:1;min-width:118px;display:flex;flex-direction:column;gap:6px;">
+        <div class="ctrl-row" style="margin:0;"><label style="width:58px;">USB Rec</label><select id="p51"><option value="0">NORMAL</option><option value="1">0dB FULL</option><option value="2">SPK MUTE</option></select></div>
+        <div style="display:flex;gap:5px;">
+          <button class="hw-btn sm cyan" id="btnTap" style="flex:1;justify-content:center;" title="Tap rhythmically to set Tempo (30-240 BPM)">TAP TEMPO</button>
+        </div>
+      </div>
+      <div id="knobsGlobal" class="global-knobs"></div>
     </div>
   </section>
 
@@ -994,7 +1033,8 @@ const PATCHES=[
   "P18 CORONA FLARE XMOD [EDGE]"
 ];
 
-let midiOut=null, midiIn=null, freeze=0, playing=1, vcfLink=1, lfoFast=0, pureMode=0, eqOn=1;
+let midiOut=null, midiIn=null, midiAccess=null, freeze=0, playing=1, vcfLink=1, lfoFast=0, pureMode=0, eqOn=1, masterMute=0;
+let txLedTm=0, rxLedTm=0;
 let curPerfMode=0, kbdHold=0, keyMode=0, playOct=0;
 let cartMask=1, cartSel=0, cartLvl=Array(16).fill(100), cartTon=Array(16).fill(64);
 let pinState=Array.from({length:8},()=>Array(8).fill(0));
@@ -1016,7 +1056,7 @@ const heldNotes=new Set();  /* Notes visually & MIDI-latched while HOLD is ON */
  *   including Joystick X/Y (CC 16/17), completely avoiding WinMM midiOutLongMsg SysEx stalls & FM-1 LCD-frame SysEx waits!
  * - Uses 32ms rate-limited SysEx (cmd 0x03) for extended parameters so FM-1's 1-frame-per-loop SysEx queue never backs up.
  * - Flushes MIDI sends asynchronously outside pointermove / requestAnimationFrame so UI rendering never waits on USB I/O. */
-const FAST_CC_MAP={0:74, 1:75, 2:71, 3:72, 4:80, 5:81, 7:91, 8:93, 10:16, 11:17, 12:85, 68:24, 69:25};
+const FAST_CC_MAP={0:74, 1:75, 2:71, 3:72, 4:80, 5:81, 7:91, 8:93, 10:16, 11:17, 12:85, 68:24, 69:25, 70:7};
 const STATELESS_PARAMS=new Set([13,14,45,46,50,52,55,56,57,66,67]);
 const paramSent=new Int16Array(128).fill(-1);
 const paramPend=new Int16Array(128).fill(-1);
@@ -1025,9 +1065,34 @@ const paramTimers=new Array(128).fill(0);
 const midiTxQueue=[];
 let midiTxScheduled=false;
 
+function blinkMidiLed(which){
+  const el=document.getElementById(which==="tx"?"ledTx":"ledRx");
+  if(!el) return;
+  const cls=which==="tx"?"tx-on":"rx-on";
+  el.classList.add(cls);
+  if(which==="tx"){ clearTimeout(txLedTm); txLedTm=setTimeout(()=>el.classList.remove(cls),90); }
+  else { clearTimeout(rxLedTm); rxLedTm=setTimeout(()=>el.classList.remove(cls),90); }
+}
+function updateCpuUI(c0,c1,ovl){
+  const fill=document.getElementById("cpuFill"), val=document.getElementById("cpuVal"), box=document.getElementById("cpuBox");
+  if(!fill||!val||!box) return;
+  const pct=Math.max(0,Math.min(100,Math.round(c0)));
+  const col=(ovl>0||pct>=88)?"#ff554b":pct>=70?"#ebb949":"#52e88b";
+  fill.style.width=pct+"%"; fill.style.background=col;
+  val.textContent=pct+"%"; val.style.color=col;
+  box.title=`FM-1 Dual-Core CPU • Core 0: ${pct}% • Core 1 DSP: ${Math.round(c1)}% • Overloads: ${ovl}`;
+}
+function resetCpuUI(){
+  const fill=document.getElementById("cpuFill"), val=document.getElementById("cpuVal"), box=document.getElementById("cpuBox");
+  if(!fill||!val||!box) return;
+  fill.style.width="0%"; fill.style.background="#52e88b";
+  val.textContent="--%"; val.style.color="var(--well-green)";
+  box.title="Live FM-1 Dual-Core CPU Load (connect FM-1 to monitor)";
+}
 function drainMidiOut(){
   midiTxScheduled=false;
   if(!midiOut){ midiTxQueue.length=0; return; }
+  if(midiTxQueue.length) blinkMidiLed("tx");
   for(let i=0;i<midiTxQueue.length;i++) midiOut.send(midiTxQueue[i]);
   midiTxQueue.length=0;
 }
@@ -1037,6 +1102,18 @@ function queueMidiBytes(bytes){
   if(!midiTxScheduled){ midiTxScheduled=true; setTimeout(drainMidiOut,0); }
 }
 function sx(bytes){ queueMidiBytes([0xF0,0x7D,0x48,0x4C,...bytes,0xF7]); }
+let bpmLastMs=-1000, bpmPend=-1, bpmTimer=0;
+function setExactBpm(bpm){
+  const b=Math.max(30,Math.min(240,Math.round(bpm)));
+  const off=b-30;
+  const send=()=>{ bpmLastMs=performance.now(); sx([0x0D,off&127,(off>>7)&1]); };
+  const elapsed=performance.now()-bpmLastMs;
+  if(elapsed>=28){ if(bpmTimer){clearTimeout(bpmTimer);bpmTimer=0;} send(); }
+  else {
+    bpmPend=b;
+    if(!bpmTimer) bpmTimer=setTimeout(()=>{ bpmTimer=0; if(bpmPend>=30){ const p=bpmPend-30; bpmPend=-1; bpmLastMs=performance.now(); sx([0x0D,p&127,(p>>7)&1]); } },Math.max(4,Math.round(28-elapsed)));
+  }
+}
 function setParamNow(pid,val){
   paramSent[pid]=val;
   paramLastMs[pid]=performance.now();
@@ -1208,20 +1285,23 @@ function makeKnob(parent,opts){
     inp.value=fmt(val);
   };
 
-  let sy=0, sv=0, dragging=false;
+  let lastY=0, accVal=val, dragging=false;
   const stopKnobDrag=()=>{ dragging=false; wrap.classList.remove("dragging"); };
   svg.onpointerdown=e=>{
     if(e.pointerType==="mouse" && e.button!==0) return;
     e.preventDefault();
-    dragging=true; sy=e.clientY; sv=val;
+    dragging=true; lastY=e.clientY; accVal=val;
     wrap.classList.add("dragging");
     try{ svg.setPointerCapture(e.pointerId); }catch(_){}
   };
   svg.onpointermove=e=>{
     if(!dragging) return;
     if(e.pointerType==="mouse" && e.buttons===0){ stopKnobDrag(); return; }
-    const sens=(max-min)/135;
-    setVal(sv+(sy-e.clientY)*sens,true);
+    const dy=lastY-e.clientY; lastY=e.clientY;
+    const fine=e.shiftKey?0.25:1.0;
+    const sens=((max-min)/135)*fine;
+    accVal=Math.max(min,Math.min(max,accVal+dy*sens));
+    setVal(accVal,true);
   };
   svg.onpointerup=stopKnobDrag;
   svg.onpointercancel=stopKnobDrag;
@@ -1236,7 +1316,17 @@ function makeKnob(parent,opts){
 }
 
 /* Populate Knobs by Hardware Module */
-makeKnob(document.getElementById("knobsGlobal"),{id:28,label:"Tempo BPM",val:25,color:"var(--green)",fmt:v=>Math.round(30+v*130/127)+" BPM",parse:s=>{const n=parseFloat(String(s).replace(/[^\d.-]/g,""));return isNaN(n)?null:Math.round((n-30)/130*127);},onChange:v=>setParam(28,v)});
+function setMasterMuteUI(on,send){
+  masterMute=on?1:0;
+  const bm=document.getElementById("btnMute");
+  if(bm){
+    bm.classList.toggle("lit-red",!!masterMute);
+    bm.innerHTML=`<span class="led-dot ${masterMute?"red":""}" id="muteLed"></span>${masterMute?"MUTED":"MUTE"}`;
+  }
+  if(send) setParam(71,masterMute);
+}
+makeKnob(document.getElementById("knobsGlobal"),{id:70,label:"Master Vol",val:127,color:"var(--gold)",onChange:v=>{ if(v>0 && masterMute) setMasterMuteUI(0,false); setParam(70,v); }});
+makeKnob(document.getElementById("knobsGlobal"),{id:28,label:"Tempo BPM",min:30,max:240,val:64,color:"var(--green)",fmt:v=>v+" BPM",parse:s=>{const n=parseFloat(String(s).replace(/[^\d.-]/g,""));return isNaN(n)?null:Math.round(n);},onChange:v=>setExactBpm(v)});
 
 const kCartLvl=makeKnob(document.getElementById("knobsFx"),{label:"#1 Level",val:100,color:"var(--gold)",onChange:v=>{cartLvl[cartSel]=v;setCartSub(cartSel,1,v);}});
 const kCartTon=makeKnob(document.getElementById("knobsFx"),{label:"#1 Tone",val:64,color:"var(--cyan)",onChange:v=>{cartTon[cartSel]=v;setCartSub(cartSel,2,v);}});
@@ -1599,6 +1689,85 @@ document.getElementById("btnJoyRec").onclick=()=>setParam(52,1);
 document.getElementById("btnMatTpl").onclick=()=>setParam(50,1);
 document.getElementById("btnCmpB").onclick=()=>setParam(56,1);
 document.getElementById("btnResetSlot").onclick=()=>setParam(55,1);
+document.getElementById("btnMute").onclick=()=>setMasterMuteUI(!masterMute,true);
+function stepPreset(delta){
+  const n=selPatch.options.length;
+  if(!n) return;
+  const cur=Math.max(0,selPatch.selectedIndex);
+  selPatch.selectedIndex=(cur+delta+n)%n;
+  selPatch.dispatchEvent(new Event("change"));
+}
+document.getElementById("btnPatchPrev").onclick=()=>stepPreset(-1);
+document.getElementById("btnPatchNext").onclick=()=>stepPreset(1);
+
+/* Tap Tempo (30-240 BPM, rolling average of last 4 taps) */
+let tapTimes=[];
+document.getElementById("btnTap").onclick=()=>{
+  const now=performance.now();
+  if(tapTimes.length && now-tapTimes[tapTimes.length-1]>2200) tapTimes=[];
+  tapTimes.push(now);
+  if(tapTimes.length>5) tapTimes.shift();
+  const btn=document.getElementById("btnTap");
+  btn.classList.add("lit");
+  setTimeout(()=>btn.classList.remove("lit"),110);
+  if(tapTimes.length>=2){
+    let sum=0;
+    for(let i=1;i<tapTimes.length;i++) sum+=tapTimes[i]-tapTimes[i-1];
+    const avgMs=sum/(tapTimes.length-1);
+    const bpm=Math.max(30,Math.min(240,Math.round(60000/avgMs)));
+    if(KNOBS[28]) KNOBS[28].setVal(bpm,true);
+  }
+};
+
+/* Musical Patch Randomizer (VCF, Spring, FX, Chorus & in-scale V4/V5 sequencer steps) */
+document.getElementById("btnRndPatch").onclick=()=>{
+  const ri=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
+  const setK=(id,v)=>{ if(KNOBS[id]) KNOBS[id].setVal(v,true); else setParam(id,v); };
+  setK(0,ri(28,108));
+  setK(2,ri(12,72));
+  setK(3,ri(8,68));
+  setK(4,ri(18,76));
+  setK(5,ri(42,102));
+  setK(7,ri(48,106));
+  setK(8,ri(18,86));
+  setK(32,ri(55,112));
+  setK(33,ri(20,92));
+  setK(39,ri(12,72));
+  const ci=ri(0,11);
+  cartSel=ci;
+  cartMask=(1<<ci);
+  setParam(6,ci);
+  setParam(45,1);
+  renderCartRack(); syncCartKnobs();
+  for(let m=0;m<2;m++){
+    const mc=melCfg[m];
+    for(let s=0;s<5;s++){
+      mc.steps[s]=ri(0,11);
+      mc.gates[s]=(s===0||Math.random()>0.22)?1:0;
+      mc.acc[s]=(Math.random()<0.25)?1:0;
+      setSeqSub(m,s,0,mc.steps[s]);
+      setSeqSub(m,s,1,mc.gates[s]);
+      setSeqSub(m,s,3,mc.acc[s]);
+    }
+  }
+  syncMelUI();
+};
+
+/* Basic Studio Keyboard Shortcuts (Space=Play/Stop, Esc=Panic, M=Quick Mute) */
+window.addEventListener("keydown",e=>{
+  const t=e.target;
+  const inField=t && (t.tagName==="INPUT"||t.tagName==="SELECT"||t.tagName==="TEXTAREA"||t.isContentEditable);
+  if(e.key==="Escape" && !inField){
+    e.preventDefault();
+    document.getElementById("btnPanic").click();
+  } else if(e.code==="Space" && !inField && !e.repeat){
+    e.preventDefault();
+    document.getElementById("btnPlay").click();
+  } else if((e.key==="m"||e.key==="M") && !inField && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat){
+    e.preventDefault();
+    document.getElementById("btnMute").click();
+  }
+});
 document.getElementById("btnPanic").onclick=()=>{
   heldNotes.forEach(n=>kbdNoteOff(n));
   heldNotes.clear(); activePtrs.clear();
@@ -1920,7 +2089,12 @@ applyJoyNorm(0.5,0.5,false,true);
 /* Incoming SysEx Full Two-Way Sync (0xF0 0x7D 0x48 0x4C: Frame 0x11 + Frame 0x12 + Frame 0x16) */
 function onMidiMsg(ev){
   const d=ev.data;
+  if(d && d.length) blinkMidiLed("rx");
   if(d.length<6||d[0]!==0xF0||d[1]!==0x7D||d[2]!==0x48||d[3]!==0x4C) return;
+  if(d[4]===0x17 && d.length>=9){
+    updateCpuUI(d[5],d[6],d[7]);
+    return;
+  }
   if(d[4]===0x11 && d.length>=97){
     paramSent.fill(-1);
     pureMode=(d[7]>>4)&1;
@@ -1946,8 +2120,9 @@ function onMidiMsg(ev){
     const selMap=[[6,22],[25,18],[27,20],[28,21]];
     selMap.forEach(([idx,pid])=>{ const el=document.getElementById("p"+pid); if(el) el.value=String(d[idx]); });
     setPerfModeUI(d[6]%3,false);
-    const knobMap=[[11,0],[12,1],[13,2],[14,3],[15,4],[16,5],[17,7],[18,8],[21,12],[22,15],[23,16],[24,17],[26,19],[29,28]];
+    const knobMap=[[11,0],[12,1],[13,2],[14,3],[15,4],[16,5],[17,7],[18,8],[21,12],[22,15],[23,16],[24,17],[26,19]];
     knobMap.forEach(([idx,pid])=>{ if(KNOBS[pid]) KNOBS[pid].setVal(d[idx],false); });
+    if(KNOBS[28]) KNOBS[28].setVal(Math.round(30+d[29]*210/127),false);
     cartSel=d[9]&15;
     document.getElementById("btnFrz").classList.toggle("lit",!!freeze);
     document.getElementById("frzLed").className="led-dot"+(freeze?" cyan":"");
@@ -2006,6 +2181,13 @@ function onMidiMsg(ev){
       melCfg[1].phase=Math.min(120,d[176]);
       melCfg[0].drift=d[177]&1;
       melCfg[1].drift=d[178]&1;
+    }
+    if(d.length>=187){
+      if(KNOBS[70]) KNOBS[70].setVal(d[179],false);
+      setMasterMuteUI(d[180]&1,false);
+      const exactBpm=30+(d[181]&127)+((d[182]&1)<<7);
+      if(KNOBS[28]) KNOBS[28].setVal(Math.max(30,Math.min(240,exactBpm)),false);
+      updateCpuUI(d[183],d[184],d[185]);
     }
     syncMelUI();
   } else if(d[4]===0x16 && d.length>10){
@@ -2107,21 +2289,41 @@ function checkWebMidiSupport(){
 document.getElementById("btnDismissMidi").onclick=()=>document.getElementById("midiBanner").classList.remove("show");
 checkWebMidiSupport();
 
+let autoReconnTimer=0;
+function attachMidiPorts(acc,fromStateChange){
+  const re=/entropy|helios|fm-?1/i;
+  let nextOut=null, nextIn=null;
+  for(const o of acc.outputs.values()) if(o.state==="connected" && re.test(o.name)){ nextOut=o; break; }
+  for(const i of acc.inputs.values()) if(i.state==="connected" && re.test(i.name)){ nextIn=i; break; }
+  if(!nextOut) for(const o of acc.outputs.values()) if(o.state==="connected"){ nextOut=o; break; }
+  if(!nextIn) for(const i of acc.inputs.values()) if(i.state==="connected"){ nextIn=i; break; }
+  const wasConnected=!!midiOut;
+  const changed=(nextOut!==midiOut)||(nextIn!==midiIn);
+  if(midiIn && midiIn!==nextIn) midiIn.onmidimessage=null;
+  midiOut=nextOut; midiIn=nextIn;
+  if(midiIn) midiIn.onmidimessage=onMidiMsg;
+  if(midiOut){
+    document.getElementById("stat").textContent="Connected: "+midiOut.name;
+    document.getElementById("connLed").className="led-dot green";
+    if(!fromStateChange || changed || !wasConnected){
+      clearTimeout(autoReconnTimer);
+      autoReconnTimer=setTimeout(()=>sx([0x01]),fromStateChange?280:0);
+    }
+  } else {
+    document.getElementById("stat").textContent=fromStateChange?"FM-1 Disconnected (waiting...)":"No FM-1 MIDI port found";
+    document.getElementById("connLed").className="led-dot amber";
+    resetCpuUI();
+  }
+}
 document.getElementById("btnConn").onclick=async()=>{
   if(!checkWebMidiSupport()){
     document.getElementById("midiBanner").scrollIntoView({behavior:"smooth",block:"nearest"});
     return;
   }
   try{
-    const acc=await navigator.requestMIDIAccess({sysex:true});
-    const re=/entropy|helios|fm-?1/i;
-    for(const o of acc.outputs.values()) if(re.test(o.name)){ midiOut=o; break; }
-    for(const i of acc.inputs.values()) if(re.test(i.name)){ midiIn=i; midiIn.onmidimessage=onMidiMsg; break; }
-    if(!midiOut) midiOut=acc.outputs.values().next().value||null;
-    if(!midiIn){ midiIn=acc.inputs.values().next().value||null; if(midiIn) midiIn.onmidimessage=onMidiMsg; }
-    document.getElementById("stat").textContent=midiOut?("Connected: "+midiOut.name):"No FM-1 MIDI port found";
-    document.getElementById("connLed").className=midiOut?"led-dot green":"led-dot amber";
-    if(midiOut) sx([0x01]);
+    midiAccess=await navigator.requestMIDIAccess({sysex:true});
+    midiAccess.onstatechange=()=>{ attachMidiPorts(midiAccess,true); };
+    attachMidiPorts(midiAccess,false);
   }catch(err){ document.getElementById("stat").textContent="WebMIDI error: "+err.message; }
 };
 

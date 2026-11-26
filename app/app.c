@@ -75,7 +75,10 @@ static uint32_t ui_splash_end = 0u; /* 1800ms live-animated P31 phosphor CRT boo
 static uint8_t  ui_studio_linked = 0u; /* 1 = WebMIDI Studio has connected/synced over USB */
 static uint8_t  ui_sysex_dirty   = 0u; /* 1 = Physical FM-1 control changed; push live sync to Studio */
 static uint32_t ui_sysex_last_ms = 0u; /* Throttle live FM-1 -> Studio SysEx push (~110 ms) */
+static uint32_t ui_cpu_last_ms   = 0u; /* Periodic live CPU telemetry push (~750 ms when Studio linked) */
 static uint32_t ui_usb_sess_last = 0u; /* Track USB session so cable unplug cleanly unlinks Studio */
+static float    ui_master_vol    = 1.0f; /* Studio/CC7 software master volume trim (0..1, multiplied with HW wheel) */
+static uint8_t  ui_master_mute   = 0u;   /* 1 = Studio soft audio mute (keeps sequencers/phase running) */
 static uint8_t hl_cpu2_state = 0u; /* 0=not tried, 1=Core 1 UP, 2=no report, 3=skipped, 4=float fail */
 
 static void hl_set_page(uint8_t next_pg)
@@ -268,7 +271,7 @@ static void hl_apply_save(const hl_save_t *sv)
     st.evolve        = st.pure_mode ? 0u : (sv->evolve & 3u);
     st.root          = sv->root % 12u;
     st.scale         = sv->scale % 7u;
-    st.bpm           = sv->bpm < 30u ? 30u : sv->bpm > 160u ? 160u : sv->bpm;
+    st.bpm           = sv->bpm < 30u ? 30u : sv->bpm > 240u ? 240u : sv->bpm;
     st.key_mode      = sv->key_mode % 3u;
     st.cart_type     = sv->cart_type % HL_NCART;
     st.pin_preset    = sv->pin_preset % 5u;
@@ -613,7 +616,7 @@ static void hl_sysex_send_state(void)
     f[p++] = hl_q7(st.ext_in_lvl);
     f[p++] = st.tuning & 0x7Fu;
     f[p++] = st.chord_mode & 0x7Fu;
-    f[p++] = (uint8_t)clamp(((int)(st.bpm < 30u ? 30u : st.bpm) - 30) * 127 / 130, 0, 127);
+    f[p++] = (uint8_t)clamp(((int)(st.bpm < 30u ? 30u : st.bpm) - 30) * 127 / 210, 0, 127);
     f[p++] = (uint8_t)((st.vcf_link & 1u) | ((st.vcf_mode[0] & 3u) << 1) | ((st.vcf_mode[1] & 3u) << 3) |
                        ((ui_spk_mute ? 2u : ui_usb_full ? 1u : 0u) << 5));
     {
@@ -690,13 +693,41 @@ static void hl_sysex_send_state(void)
     e[q++] = hl_q7(st.eq_mid_q);
     e[q++] = hl_q7((st.eq_hi_db + 12.0f) * (1.0f / 24.0f));
     e[q++] = hl_q7(st.eq_hi_hz);
-    /* Dual Sequencer Phase (0..120 in 3° steps = 0..360°) & Reich Drift (0/1) — 4 bytes (total 180 B) */
+    /* Dual Sequencer Phase (0..120 in 3° steps = 0..360°) & Reich Drift (0/1) — 4 bytes */
     e[q++] = (uint8_t)clamp((int)(st.mel[0].seq_phase * 120.0f + 0.5f), 0, 120);
     e[q++] = (uint8_t)clamp((int)(st.mel[1].seq_phase * 120.0f + 0.5f), 0, 120);
     e[q++] = st.mel[0].seq_drift & 1u;
     e[q++] = st.mel[1].seq_drift & 1u;
+    /* v1.3.2: Master Vol (7b), Master Mute (1b), Exact BPM-30 (lo7, hi1), CPU0 %, Core1 %, Overloads (7 bytes; total 187 B) */
+    {
+        uint32_t vj = 0u, fxj = 0u, lt = 0u, ls = 0u, c1p = 0u;
+        int md = 0;
+        int bpm_off = clamp((int)st.bpm - 30, 0, 210);
+        helios_core2_stats(&vj, &fxj, &lt, &ls, &c1p, &md);
+        e[q++] = hl_q7(ui_master_vol);
+        e[q++] = ui_master_mute & 1u;
+        e[q++] = (uint8_t)(bpm_off & 0x7Fu);
+        e[q++] = (uint8_t)((bpm_off >> 7) & 1u);
+        e[q++] = (uint8_t)clamp((int)plat_cpu_pct(), 0, 100);
+        e[q++] = (uint8_t)clamp((int)c1p, 0, 100);
+        e[q++] = (uint8_t)(overloads_cnt > 127u ? 127u : overloads_cnt);
+    }
     e[q++] = 0xF7u;
     plat_sysex_send(e, q);
+}
+
+static void hl_sysex_send_cpu(void)
+{
+    uint8_t f[10];
+    uint32_t vj = 0u, fxj = 0u, lt = 0u, ls = 0u, c1p = 0u;
+    int md = 0;
+    helios_core2_stats(&vj, &fxj, &lt, &ls, &c1p, &md);
+    f[0] = 0xF0u; f[1] = 0x7Du; f[2] = 0x48u; f[3] = 0x4Cu; f[4] = 0x17u;
+    f[5] = (uint8_t)clamp((int)plat_cpu_pct(), 0, 100);
+    f[6] = (uint8_t)clamp((int)c1p, 0, 100);
+    f[7] = (uint8_t)(overloads_cnt > 127u ? 127u : overloads_cnt);
+    f[8] = 0xF7u;
+    plat_sysex_send(f, 9u);
 }
 
 int app_sysex(const uint8_t *p, uint32_t n)
@@ -771,7 +802,7 @@ int app_sysex(const uint8_t *p, uint32_t n)
                 return 1;
             }
             case 27: st.lfo_fast    = val & 1u; break;
-            case 28: st.bpm         = (uint8_t)(30u + ((uint32_t)val * 130u) / 127u); break;
+            case 28: st.bpm         = (uint8_t)(30u + ((uint32_t)val * 210u) / 127u); break;
             case 29: helios_retune_drones_to_root(val % 12u); return 1;
             case 30: st.scale       = val % 7u; break;
             case 31: helios_set_arp_mode(val % 6u); return 1;
@@ -822,8 +853,18 @@ int app_sysex(const uint8_t *p, uint32_t n)
             case 65: st.eq_on     = val & 1u; break;
             case 66: helios_eq_reset(); hl_sysex_send_state(); return 1;
             case 67: helios_seq_sync(); return 1;
+            case 70: ui_master_vol = vn; if (val > 0u) ui_master_mute = 0u; return 1;
+            case 71: ui_master_mute = val & 1u; return 1;
             default: break;
             }
+            helios_set_state(&st);
+            return 1;
+        }
+        if (cmd == 0x0Du && n >= 6u) {
+            /* Exact 1-BPM Tempo Set: [4]=lo7, [5]=hi1 -> bpm = 30 + (lo7 | (hi1 << 7)) in 30..240 */
+            int bpm = 30 + (int)((p[4] & 0x7Fu) | ((p[5] & 1u) << 7));
+            helios_get_state(&st);
+            st.bpm = (uint8_t)clamp(bpm, 30, 240);
             helios_set_state(&st);
             return 1;
         }
@@ -1012,6 +1053,7 @@ static void hl_handle_midi(uint32_t pkt)
         helios_get_state(&st);
         switch (d1) {
         case 1:  if (st.scene_b_set) { helios_set_morph(v); return; } st.joy_y = v * 2.0f - 1.0f; break;
+        case 7:  ui_master_vol = v; if (d2 > 0u) ui_master_mute = 0u; return;
         case 16: st.joy_x = v * 2.0f - 1.0f; break;
         case 17: st.joy_y = v * 2.0f - 1.0f; break;
         case 20: st.playing = (d2 >= 64u) ? 1u : 0u; break;
@@ -1106,7 +1148,8 @@ void app_init(void)
 
 void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
 {
-    helios_render(lr, n, (float)master_q12 * (1.0f / 4096.0f));
+    float g = ui_master_mute ? 0.0f : ((float)master_q12 * (1.0f / 4096.0f) * ui_master_vol);
+    helios_render(lr, n, g);
 }
 
 void app_panic(void)
@@ -1713,7 +1756,7 @@ static void hl_knob_info(const helios_state_t *st, unsigned page, unsigned knob,
                     hl_cat(lbl, st->ext_clk_lock ? "EXT CLK" : "TEMPO");
                     hl_cat_u(val, (unsigned)st->bpm);
                     hl_cat(val, " BPM");
-                    *norm = (float)(st->bpm - 30u) * (1.0f / 130.0f);
+                    *norm = (float)(st->bpm - 30u) * (1.0f / 210.0f);
                 }
             }
         }
@@ -2036,7 +2079,7 @@ static void hl_turn_knob(unsigned page, unsigned knob, int32_t d)
                 plat_speaker(!ui_spk_mute);
 #endif
             } else {
-                st.bpm = (uint8_t)clamp((int32_t)st.bpm + d, 30, 160);
+                st.bpm = (uint8_t)clamp((int32_t)st.bpm + d, 30, 240);
                 helios_set_state(&st);
             }
         }
@@ -3853,7 +3896,16 @@ void app_frame(void)
         {
             ui_sysex_dirty = 0u;
             ui_sysex_last_ms = now;
+            ui_cpu_last_ms = now;
             hl_sysex_send_state();
+        }
+    } else if (ui_studio_linked && (uint32_t)(now - ui_cpu_last_ms) >= 750u) {
+#ifdef PLAT_TICKS_PER_US
+        if (plat_sysex_room() >= 20u)
+#endif
+        {
+            ui_cpu_last_ms = now;
+            hl_sysex_send_cpu();
         }
     }
 

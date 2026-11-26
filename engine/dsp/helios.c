@@ -1613,7 +1613,7 @@ void helios_midi_clock(uint32_t now_ms)
                 float bpm_f = 2500.0f / D.clk_dt_avg;
                 int b = (int)(bpm_f + 0.5f);
                 if (b < 30) b = 30;
-                if (b > 200) b = 200;
+                if (b > 240) b = 240;
                 S.bpm = (uint8_t)b;
             }
             S.ext_clk_lock = 1u;
