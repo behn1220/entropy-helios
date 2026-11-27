@@ -367,7 +367,16 @@ static struct {
     uint8_t  ev_tgt_ready;
     float    ev_tgt_cut[2], ev_tgt_res[2], ev_tgt_drive;
     float    ev_tgt_spr, ev_tgt_cmix, ev_tgt_shim, ev_tgt_chor;
+    float    ev_tgt_vlfo, ev_tgt_sdec, ev_tgt_cdec, ev_tgt_cton;
+    float    ev_tgt_xmod, ev_tgt_ext, ev_tgt_noise, ev_tgt_sh, ev_tgt_slew;
+    float    ev_tgt_hpf, ev_tgt_tilt, ev_tgt_tape;
+    float    ev_tgt_eq_lo, ev_tgt_eq_mid, ev_tgt_eq_hi, ev_tgt_eq_mhz;
     float    ev_tgt_morph[HL_NDRONE], ev_tgt_spread[HL_NDRONE];
+    float    ev_tgt_dlvl[HL_NDRONE], ev_tgt_datk[HL_NDRONE], ev_tgt_drel[HL_NDRONE], ev_tgt_dgld[HL_NDRONE];
+    float    ev_tgt_mlvl[HL_NMEL], ev_tgt_mvib[HL_NMEL], ev_tgt_mgld[HL_NMEL], ev_tgt_matk[HL_NMEL], ev_tgt_mrel[HL_NMEL];
+    /* Smooth Per-Cartridge FX Crossfader (level -> 0, enable, ramp up over random seconds; or ramp down -> 0, disable) */
+    float    ev_cfade_tgt[HL_NCART], ev_cfade_rate[HL_NCART];
+    uint8_t  ev_cfade_dir[HL_NCART]; /* 0 = idle, 1 = fading IN, 2 = fading OUT -> OFF */
 
     /* Per-Voice Polyphonic Instrument & Velocity / Polyphonic-Aftertouch State (HYBRID & PLAY 8V) */
     int8_t   d_key[HL_NDRONE];
@@ -1295,6 +1304,7 @@ void helios_load_patch(uint32_t idx)
     D.ev_freeze_t    = 0.0f;
     D.ev_mel_rest_t  = 0.0f;
     D.ev_tgt_ready   = 0u;
+    hl_zero(D.ev_cfade_dir, sizeof D.ev_cfade_dir);
 
     /* If loading a patch while in PLAY 8V or HYBRID mode, keep performance mode clean */
     if (S.perf_mode == HL_PERF_PLAY) {
@@ -1421,6 +1431,7 @@ void helios_load_init(uint8_t pure)
     D.ev_freeze_t   = 0.0f;
     D.ev_mel_rest_t = 0.0f;
     D.ev_tgt_ready  = 0u;
+    hl_zero(D.ev_cfade_dir, sizeof D.ev_cfade_dir);
     helios_panic(); /* Flush reverb/delay/spring tails so blank INIT starts dead silent */
 }
 
@@ -1447,8 +1458,10 @@ void helios_set_pure_mode(uint8_t on)
     if (S.pure_mode) {
         S.evolve = 0u;
         D.ev_tgt_ready = 0u;
+        hl_zero(D.ev_cfade_dir, sizeof D.ev_cfade_dir);
     } else if (S.evolve == 0u) {
         S.evolve = 1u;
+        D.ev_tgt_ready = 0u;
     }
 }
 
@@ -1513,7 +1526,19 @@ void helios_init(float fs)
 }
 
 void helios_get_state(helios_state_t *out) { *out = S; }
-void helios_set_state(const helios_state_t *in) { S = *in; }
+void helios_set_state(const helios_state_t *in)
+{
+    uint8_t prev_ev = S.evolve;
+    S = *in;
+    if (S.evolve == 0u && prev_ev != 0u) {
+        hl_zero(D.ev_cfade_dir, sizeof D.ev_cfade_dir);
+    } else if (S.evolve != 0u && prev_ev == 0u) {
+        hl_snap_scene(&hl_scene_a);
+        D.ev_home_root  = S.root;
+        D.ev_home_scale = S.scale;
+        D.ev_tgt_ready  = 0u;
+    }
+}
 
 const char *helios_patch_name(uint32_t idx)    { return HL_PATCHES[idx % HL_NPATCHES].name; }
 uint8_t helios_patch_vibe(uint32_t idx)        { return HL_PATCHES[idx % HL_NPATCHES].vibe; }
@@ -1716,8 +1741,20 @@ void helios_step_patch(int dir)
 }
 
 void helios_toggle_play(void)     { S.playing ^= 1u; if (S.playing) helios_seq_sync(); }
-void helios_set_evolve(uint8_t e) { S.evolve = e & 3u; }
-void helios_cycle_evolve(void)    { S.evolve = (S.evolve + 1u) & 3u; }
+void helios_set_evolve(uint8_t e)
+{
+    uint8_t prev = S.evolve;
+    S.evolve = e & 3u;
+    if (S.evolve == 0u) {
+        hl_zero(D.ev_cfade_dir, sizeof D.ev_cfade_dir);
+    } else if (prev == 0u) {
+        hl_snap_scene(&hl_scene_a);
+        D.ev_home_root  = S.root;
+        D.ev_home_scale = S.scale;
+        D.ev_tgt_ready  = 0u;
+    }
+}
+void helios_cycle_evolve(void)    { helios_set_evolve((uint8_t)((S.evolve + 1u) & 3u)); }
 
 void helios_set_perf_mode(uint8_t mode)
 {
@@ -2451,9 +2488,9 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
         }
     }
 
-    /* 1B. Entropy Harmonic Composer & Rarity-Weighted Living Evolution Engine (with Analog Warmth Guard for CALM patches!) */
-    if (!S.pure_mode && S.evolve > 0u && S.perf_mode != HL_PERF_PLAY) {
-        int warm_guard = (HL_PATCHES[S.patch % HL_NPATCHES].vibe == 1u);
+    /* 1B. Entropy Harmonic Composer & Rarity-Weighted Living Evolution Engine (Active in BOTH ENTROPY & PURE modes!) */
+    if (S.evolve > 0u && S.perf_mode != HL_PERF_PLAY) {
+        int warm_guard = (!S.pure_mode && HL_PATCHES[S.patch % HL_NPATCHES].vibe == 1u);
         float ev_spd = S.evolve == 1u ? 0.032f : S.evolve == 2u ? 0.075f : 0.145f;
         if (warm_guard) ev_spd *= 0.72f;
         D.ev_joy_ph += ev_spd * dt_block;
@@ -2469,11 +2506,30 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
             D.ev_tgt_res[0] = S.vcf_res[0];   D.ev_tgt_res[1] = S.vcf_res[1];
             D.ev_tgt_drive  = S.vcf_drive;    D.ev_tgt_spr    = S.spring_mix;
             D.ev_tgt_cmix   = S.cart_mix;     D.ev_tgt_shim   = S.cart_shimmer;
-            D.ev_tgt_chor   = S.chorus_mix;
+            D.ev_tgt_chor   = S.chorus_mix;   D.ev_tgt_vlfo   = S.vcf_lfo;
+            D.ev_tgt_sdec   = S.spring_decay; D.ev_tgt_cdec   = S.cart_decay;
+            D.ev_tgt_cton   = S.cart_tone;    D.ev_tgt_xmod   = S.v45_xmod;
+            D.ev_tgt_ext    = S.ext_in_lvl;   D.ev_tgt_noise  = S.noise_lvl;
+            D.ev_tgt_sh     = S.sh_rate;      D.ev_tgt_slew   = S.slew_amt;
+            D.ev_tgt_hpf    = S.master_hpf;   D.ev_tgt_tilt   = S.master_tilt;
+            D.ev_tgt_tape   = S.master_tape;
+            D.ev_tgt_eq_lo  = S.eq_lo_db;     D.ev_tgt_eq_mid = S.eq_mid_db;
+            D.ev_tgt_eq_hi  = S.eq_hi_db;     D.ev_tgt_eq_mhz = S.eq_mid_hz;
             for (v = 0; v < HL_NDRONE; v++) {
                 D.ev_tgt_morph[v]  = S.drone[v].wave_morph;
                 D.ev_tgt_spread[v] = S.drone[v].spread;
+                D.ev_tgt_dlvl[v]   = S.drone[v].level;
+                D.ev_tgt_datk[v]   = S.drone[v].attack;
+                D.ev_tgt_drel[v]   = S.drone[v].release;
+                D.ev_tgt_dgld[v]   = S.drone[v].glide;
                 if (D.d_cur_note[v] < 12.0f) D.d_cur_note[v] = S.drone[v].note;
+            }
+            for (k = 0; k < HL_NMEL; k++) {
+                D.ev_tgt_mlvl[k] = S.mel[k].level;
+                D.ev_tgt_mvib[k] = S.mel[k].vibrato;
+                D.ev_tgt_mgld[k] = S.mel[k].glide;
+                D.ev_tgt_matk[k] = S.mel[k].attack;
+                D.ev_tgt_mrel[k] = S.mel[k].release;
             }
             D.ev_tgt_ready = 1u;
         }
@@ -2496,6 +2552,30 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
             }
         }
 
+        /* Smooth Per-Cartridge FX Crossfader: ramp newly enabled FX from 0 -> target, or fade outgoing FX -> 0 -> OFF */
+        for (v = 0; v < HL_NCART; v++) {
+            uint8_t dir = D.ev_cfade_dir[v];
+            if (!dir) continue;
+            if (!(S.cart_mask & (uint16_t)(1u << v))) {
+                D.ev_cfade_dir[v] = 0u;
+                continue;
+            }
+            if (dir == 1u) {
+                S.cart_lvl[v] += D.ev_cfade_rate[v] * dt_block;
+                if (S.cart_lvl[v] >= D.ev_cfade_tgt[v]) {
+                    S.cart_lvl[v] = D.ev_cfade_tgt[v];
+                    D.ev_cfade_dir[v] = 0u;
+                }
+            } else {
+                S.cart_lvl[v] -= D.ev_cfade_rate[v] * dt_block;
+                if (S.cart_lvl[v] <= 0.002f) {
+                    S.cart_lvl[v] = 0.0f;
+                    S.cart_mask &= (uint16_t)~(1u << v);
+                    D.ev_cfade_dir[v] = 0u;
+                }
+            }
+        }
+
         /* Smooth analog parameter glide toward evolution targets (zero clicks!) */
         if (!S.compare_on && !S.scene_b_set) {
             float kg = 1.0f - fm_expf(-dt_block * (S.evolve == 3u ? 0.32f : S.evolve == 2u ? 0.20f : 0.12f));
@@ -2504,13 +2584,42 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
             S.vcf_res[0]   += (D.ev_tgt_res[0] - S.vcf_res[0]) * kg;
             S.vcf_res[1]   += (D.ev_tgt_res[1] - S.vcf_res[1]) * kg;
             S.vcf_drive    += (D.ev_tgt_drive  - S.vcf_drive)  * kg;
+            S.vcf_lfo      += (D.ev_tgt_vlfo   - S.vcf_lfo)    * kg;
             S.spring_mix   += (D.ev_tgt_spr    - S.spring_mix) * kg;
+            S.spring_decay += (D.ev_tgt_sdec   - S.spring_decay) * kg;
             S.cart_mix     += (D.ev_tgt_cmix   - S.cart_mix)   * kg;
+            S.cart_decay   += (D.ev_tgt_cdec   - S.cart_decay) * kg;
             S.cart_shimmer += (D.ev_tgt_shim   - S.cart_shimmer) * kg;
+            S.cart_tone    += (D.ev_tgt_cton   - S.cart_tone)  * kg;
             S.chorus_mix   += (D.ev_tgt_chor   - S.chorus_mix) * kg;
+            S.v45_xmod     += (D.ev_tgt_xmod   - S.v45_xmod)   * kg;
+            if (S.ext_src == 0u) S.ext_in_lvl += (D.ev_tgt_ext - S.ext_in_lvl) * kg;
+            S.noise_lvl    += (D.ev_tgt_noise  - S.noise_lvl)  * kg;
+            S.sh_rate      += (D.ev_tgt_sh     - S.sh_rate)    * kg;
+            S.slew_amt     += (D.ev_tgt_slew   - S.slew_amt)   * kg;
+            S.master_hpf   += (D.ev_tgt_hpf    - S.master_hpf) * kg;
+            S.master_tilt  += (D.ev_tgt_tilt   - S.master_tilt) * kg;
+            S.master_tape  += (D.ev_tgt_tape   - S.master_tape) * kg;
+            if (S.eq_on) {
+                S.eq_lo_db  += (D.ev_tgt_eq_lo  - S.eq_lo_db)  * kg;
+                S.eq_mid_db += (D.ev_tgt_eq_mid - S.eq_mid_db) * kg;
+                S.eq_hi_db  += (D.ev_tgt_eq_hi  - S.eq_hi_db)  * kg;
+                S.eq_mid_hz += (D.ev_tgt_eq_mhz - S.eq_mid_hz) * kg;
+            }
             for (v = 0; v < HL_NDRONE; v++) {
                 S.drone[v].wave_morph += (D.ev_tgt_morph[v]  - S.drone[v].wave_morph) * kg;
                 S.drone[v].spread     += (D.ev_tgt_spread[v] - S.drone[v].spread)     * kg;
+                S.drone[v].level      += (D.ev_tgt_dlvl[v]   - S.drone[v].level)      * kg;
+                S.drone[v].attack     += (D.ev_tgt_datk[v]   - S.drone[v].attack)     * kg;
+                S.drone[v].release    += (D.ev_tgt_drel[v]   - S.drone[v].release)    * kg;
+                S.drone[v].glide      += (D.ev_tgt_dgld[v]   - S.drone[v].glide)      * kg;
+            }
+            for (k = 0; k < HL_NMEL; k++) {
+                S.mel[k].level   += (D.ev_tgt_mlvl[k] - S.mel[k].level)   * kg;
+                S.mel[k].vibrato += (D.ev_tgt_mvib[k] - S.mel[k].vibrato) * kg;
+                S.mel[k].glide   += (D.ev_tgt_mgld[k] - S.mel[k].glide)   * kg;
+                S.mel[k].attack  += (D.ev_tgt_matk[k] - S.mel[k].attack)  * kg;
+                S.mel[k].release += (D.ev_tgt_mrel[k] - S.mel[k].release) * kg;
             }
         }
 
@@ -2622,9 +2731,10 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
             D.ev_timer = 0.0f;
 
             if (roll < w_com) {
-                /* COMMON: Organic breathing around baseline (Ultra-Warm ceiling on sub-bliss & all CALM patches!) */
+                /* COMMON: Organic breathing across VCF, Drones, Melodic, FX, Noise, CV Gen, Master Bus & EQ (zero Touch Plate changes!) */
                 uint32_t dv = (r >> 10) % HL_NDRONE;
-                int is_sub_bliss = (S.patch == 1u || S.patch == 5u);
+                uint32_t mv = (r >> 13) & 1u;
+                int is_sub_bliss = (!S.pure_mode && (S.patch == 1u || S.patch == 5u));
                 float max_cut = is_sub_bliss ? 0.32f : warm_guard ? 0.46f : 0.88f;
                 float min_cut = is_sub_bliss ? 0.16f : warm_guard ? 0.20f : 0.14f;
                 float max_res = is_sub_bliss ? 0.24f : warm_guard ? 0.36f : 0.82f;
@@ -2634,13 +2744,53 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
                 D.ev_tgt_cut[1] = br_clampf(hl_scene_a.vcf_cut[1] + br_randf(&D.rng[0]) * span, min_cut, max_cut);
                 D.ev_tgt_res[0] = br_clampf(hl_scene_a.vcf_res[0] + br_randf(&D.rng[0]) * (span * 0.6f), 0.05f, max_res);
                 D.ev_tgt_res[1] = br_clampf(hl_scene_a.vcf_res[1] + br_randf(&D.rng[0]) * (span * 0.6f), 0.05f, max_res);
+                D.ev_tgt_vlfo   = br_clampf(S.vcf_lfo + br_randf(&D.rng[0]) * (span * 0.7f), 0.05f, warm_guard ? 0.55f : 0.90f);
                 D.ev_tgt_morph[dv]  = br_clampf(D.ev_tgt_morph[dv] + br_randf(&D.rng[0]) * (span * 1.2f), 0.05f, max_mrp);
                 D.ev_tgt_spread[dv] = br_clampf(hl_scene_a.d_spread[dv] + br_randf(&D.rng[0]) * span, 0.08f, max_spr);
-                D.ev_tgt_spr  = br_clampf(hl_scene_a.spring_mix + br_randf(&D.rng[0]) * (span * 0.6f), 0.05f, warm_guard ? 0.42f : 0.72f);
-                D.ev_tgt_shim = br_clampf(hl_scene_a.cart_shimmer + br_randf(&D.rng[0]) * span, 0.08f, 0.85f);
+                D.ev_tgt_dlvl[dv]   = br_clampf(hl_scene_a.d_level[dv] + br_randf(&D.rng[0]) * (span * 0.7f), 0.30f, 0.95f);
+                D.ev_tgt_datk[dv]   = br_clampf(S.drone[dv].attack  + br_randf(&D.rng[0]) * (span * 0.5f), 0.05f, 0.85f);
+                D.ev_tgt_drel[dv]   = br_clampf(S.drone[dv].release + br_randf(&D.rng[0]) * (span * 0.5f), 0.15f, 0.92f);
+                D.ev_tgt_dgld[dv]   = br_clampf(S.drone[dv].glide   + br_randf(&D.rng[0]) * (span * 0.5f), 0.02f, 0.78f);
+                D.ev_tgt_mlvl[mv]   = br_clampf(S.mel[mv].level     + br_randf(&D.rng[0]) * (span * 0.6f), 0.25f, 0.92f);
+                D.ev_tgt_mvib[mv]   = br_clampf(S.mel[mv].vibrato   + br_randf(&D.rng[0]) * (span * 0.6f), 0.02f, warm_guard ? 0.45f : 0.80f);
+                D.ev_tgt_mgld[mv]   = br_clampf(S.mel[mv].glide     + br_randf(&D.rng[0]) * (span * 0.5f), 0.02f, 0.75f);
+                D.ev_tgt_matk[mv]   = br_clampf(S.mel[mv].attack    + br_randf(&D.rng[0]) * (span * 0.4f), 0.02f, 0.70f);
+                D.ev_tgt_mrel[mv]   = br_clampf(S.mel[mv].release   + br_randf(&D.rng[0]) * (span * 0.5f), 0.12f, 0.88f);
+                D.ev_tgt_xmod       = br_clampf(hl_scene_a.v45_xmod + br_randf(&D.rng[0]) * (span * 0.7f), 0.00f, warm_guard ? 0.28f : 0.82f);
+                D.ev_tgt_spr        = br_clampf(hl_scene_a.spring_mix   + br_randf(&D.rng[0]) * (span * 0.6f), 0.05f, warm_guard ? 0.42f : 0.72f);
+                D.ev_tgt_sdec       = br_clampf(hl_scene_a.spring_decay + br_randf(&D.rng[0]) * (span * 0.6f), 0.15f, 0.88f);
+                D.ev_tgt_cdec       = br_clampf(hl_scene_a.cart_decay   + br_randf(&D.rng[0]) * (span * 0.6f), 0.20f, 0.92f);
+                D.ev_tgt_shim       = br_clampf(hl_scene_a.cart_shimmer + br_randf(&D.rng[0]) * span, 0.08f, 0.85f);
+                D.ev_tgt_cton       = br_clampf(S.cart_tone + br_randf(&D.rng[0]) * (span * 0.7f), 0.15f, warm_guard ? 0.65f : 0.92f);
+                D.ev_tgt_noise      = br_clampf(S.noise_lvl + br_randf(&D.rng[0]) * (span * 0.45f), 0.00f, warm_guard ? 0.24f : 0.52f);
+                D.ev_tgt_sh         = br_clampf(S.sh_rate   + br_randf(&D.rng[0]) * (span * 0.7f), 0.05f, 0.85f);
+                D.ev_tgt_slew       = br_clampf(S.slew_amt  + br_randf(&D.rng[0]) * (span * 0.7f), 0.08f, 0.90f);
+                if (S.ext_src == 0u) {
+                    D.ev_tgt_ext = br_clampf(hl_scene_a.ext_in_lvl + br_randf(&D.rng[0]) * (span * 0.5f), 0.00f, warm_guard ? 0.35f : 0.72f);
+                }
+                D.ev_tgt_hpf  = br_clampf(S.master_hpf  + br_randf(&D.rng[0]) * (span * 0.3f), 0.00f, 0.32f);
+                D.ev_tgt_tilt = br_clampf(S.master_tilt + br_randf(&D.rng[0]) * (span * 0.4f), -0.35f, 0.35f);
+                D.ev_tgt_tape = br_clampf(S.master_tape + br_randf(&D.rng[0]) * (span * 0.4f), 0.08f, warm_guard ? 0.45f : 0.72f);
+                if (S.eq_on) {
+                    D.ev_tgt_eq_lo  = br_clampf(S.eq_lo_db  + br_randf(&D.rng[0]) * 1.8f, -4.0f, 4.5f);
+                    D.ev_tgt_eq_mid = br_clampf(S.eq_mid_db + br_randf(&D.rng[0]) * 1.8f, -4.0f, 4.0f);
+                    D.ev_tgt_eq_hi  = br_clampf(S.eq_hi_db  + br_randf(&D.rng[0]) * 1.8f, -3.5f, 4.5f);
+                    D.ev_tgt_eq_mhz = br_clampf(S.eq_mid_hz + br_randf(&D.rng[0]) * 0.14f, 0.12f, 0.85f);
+                }
+                /* Gently drift the tone/rate param of one active FX cartridge */
+                if (S.cart_mask) {
+                    unsigned tries, ci = (r >> 16) % HL_NCART;
+                    for (tries = 0; tries < HL_NCART; tries++) {
+                        unsigned c = (ci + tries) % HL_NCART;
+                        if (S.cart_mask & (uint16_t)(1u << c)) {
+                            S.cart_param[c] = br_clampf(S.cart_param[c] + br_randf(&D.rng[0]) * (span * 0.6f), 0.08f, 0.92f);
+                            break;
+                        }
+                    }
+                }
             } else if (roll < w_unc) {
-                /* UNCOMMON: Deeper filter/timbre shifts, Melodic Wave/Seq mutations, Breathing Rests */
-                uint32_t act = (r >> 12) % 5u;
+                /* UNCOMMON: Deeper filter/timbre shifts, Melodic Wave/Seq/Step mutations, Smooth FX Cart Bloom, Breathing Rests */
+                uint32_t act = (r >> 12) % 7u;
                 if (act == 0u) {
                     if (warm_guard) {
                         /* Warmth Guard: stay strictly in silky LP 12dB with gentle drive */
@@ -2654,9 +2804,15 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
                 } else if (act == 1u) {
                     static const uint8_t WARM_W[4] = {0, 2, 3, 5}; /* SAW+SUB, FOLD TRI, FM BELL, HARMONIC */
                     unsigned mi = (r >> 16) & 1u;
-                    S.mel[mi].wave    = warm_guard ? WARM_W[(r >> 18) & 3u] : (uint8_t)((r >> 18) % 6u);
-                    S.mel[mi].seq_div = warm_guard ? (uint8_t)((r >> 21) % 3u) : (uint8_t)((r >> 21) % 7u);
-                    S.mel[mi].seq_len = (uint8_t)(3u + ((r >> 24) % 3u));
+                    unsigned stp = (r >> 26) % HL_NSTEPS;
+                    S.mel[mi].wave      = warm_guard ? WARM_W[(r >> 18) & 3u] : (uint8_t)((r >> 18) % 6u);
+                    S.mel[mi].seq_div   = warm_guard ? (uint8_t)((r >> 21) % 3u) : (uint8_t)((r >> 21) % 7u);
+                    S.mel[mi].seq_len   = (uint8_t)(3u + ((r >> 24) % 3u));
+                    S.mel[mi].seq_phase = (float)((r >> 10) % 5u) * 0.125f;
+                    S.mel[mi].seq_drift = (uint8_t)(((r >> 9) % 4u) == 0u ? 1u : 0u);
+                    S.mel[mi].step_prob[stp] = (uint8_t)(5u + ((r >> 7) % 6u)); /* 50..100% */
+                    S.mel[mi].step_acc[stp]  = (uint8_t)(((r >> 5) % 3u) == 0u ? 1u : 0u);
+                    S.mel[mi].step_gate[stp] = (uint8_t)(((r >> 3) % 5u) == 0u ? 0u : 1u);
                 } else if (act == 2u && S.perf_mode == HL_PERF_GEN && D.ev_mel_rest_t <= 0.0f) {
                     /* Entropy Melodic Breathing Rest (6..12 s so the pure 30-saw drone shines!) */
                     unsigned mi = (r >> 16) & 1u;
@@ -2671,6 +2827,54 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
                         helios_kick_spring(0.35f + 0.25f * (float)((r >> 16) & 1u));
                         D.ev_tgt_cmix = br_clampf(hl_scene_a.cart_mix + 0.18f, 0.20f, 0.90f);
                     }
+                } else if (act == 4u) {
+                    /* Smooth FX Cartridge Crossfade IN (level=0 -> ON -> slow random ramp to random max %) or OUT (-> 0 -> OFF) */
+                    static const uint8_t WARM_CARTS[6] = {0, 1, 2, 3, 9, 15}; /* SHIMMER, ECHO, BLACKHOLE, GRANULAR, CHOR+PITCH, TAPE WASH */
+                    unsigned n_on = 0u, ci, tries;
+                    for (ci = 0; ci < HL_NCART; ci++) if (S.cart_mask & (uint16_t)(1u << ci)) n_on++;
+                    int want_add = (n_on == 0u) ? 1 : (n_on <= 3u) ? (((r >> 4) % 100u) < 75u) : (n_on <= 6u) ? (((r >> 4) % 100u) < 35u) : (((r >> 4) % 100u) < 15u);
+                    if (want_add) {
+                        unsigned pool = warm_guard ? 6u : HL_NCART;
+                        unsigned start = (r >> 16) % pool;
+                        for (tries = 0; tries < pool; tries++) {
+                            unsigned c = warm_guard ? WARM_CARTS[(start + tries) % 6u] : ((start + tries) % HL_NCART);
+                            if (!(S.cart_mask & (uint16_t)(1u << c)) && D.ev_cfade_dir[c] == 0u) {
+                                float max_pct = 0.25f + (float)((r >> 8) % (warm_guard ? 38u : 63u)) * 0.01f;
+                                float dur_s   = (S.evolve == 1u ? 6.0f : S.evolve == 2u ? 4.0f : 2.5f)
+                                              + (float)((r >> 20) % (S.evolve == 1u ? 11u : S.evolve == 2u ? 8u : 6u));
+                                S.cart_lvl[c]     = 0.0f; /* Always drop level to 0 BEFORE enabling! */
+                                S.cart_param[c]   = 0.20f + (float)((r >> 24) % 62u) * 0.01f;
+                                S.cart_mask      |= (uint16_t)(1u << c);
+                                S.cart_type       = (uint8_t)c;
+                                D.ev_cfade_tgt[c] = max_pct;
+                                D.ev_cfade_rate[c]= max_pct / dur_s;
+                                D.ev_cfade_dir[c] = 1u;
+                                break;
+                            }
+                        }
+                    } else if (n_on >= 2u) {
+                        unsigned start = (r >> 16) % HL_NCART;
+                        for (tries = 0; tries < HL_NCART; tries++) {
+                            unsigned c = (start + tries) % HL_NCART;
+                            if ((S.cart_mask & (uint16_t)(1u << c)) && D.ev_cfade_dir[c] == 0u) {
+                                float dur_s = (S.evolve == 1u ? 5.0f : S.evolve == 2u ? 3.5f : 2.0f) + (float)((r >> 20) % 8u);
+                                float cur_l = S.cart_lvl[c] > 0.05f ? S.cart_lvl[c] : 0.05f;
+                                D.ev_cfade_tgt[c]  = 0.0f;
+                                D.ev_cfade_rate[c] = cur_l / dur_s;
+                                D.ev_cfade_dir[c]  = 2u;
+                                break;
+                            }
+                        }
+                    }
+                } else if (act == 5u) {
+                    /* Drone Sub-Octave / Stereo Pan / Noise Mode texture shift */
+                    unsigned dv = (r >> 16) % HL_NDRONE;
+                    S.drone[dv].sub = (uint8_t)(((r >> 20) & 3u) == 0u ? 1u : 0u);
+                    if (!warm_guard) {
+                        static const int8_t PANS[3] = {-1, 0, 1};
+                        S.drone[dv].pan = PANS[(r >> 22) % 3u];
+                        S.noise_mode    = (uint8_t)((r >> 24) % 3u);
+                    }
                 } else {
                     float wm = warm_guard
                         ? (0.14f + (float)((r >> 16) % 34u) * 0.01f) /* 0.14..0.47 warm SAW <-> TRI */
@@ -2678,21 +2882,50 @@ void helios_render(int32_t *lr, uint32_t n, float gain)
                     for (v = 0; v < HL_NDRONE; v++) D.ev_tgt_morph[v] = wm;
                 }
             } else if (roll < w_rar) {
-                /* RARE: Cartridge Rotation, Scale/Mode Shift, 8x8 Pin Matrix Template, or Gentle BPM Drift */
-                uint32_t act = (r >> 12) % 4u;
+                /* RARE: Smooth FX Cartridge Swap, Scale/Tuning/Chord Shift, Pin Matrix Template, Melodic Octave, LFO Speed, or BPM Drift */
+                uint32_t act = (r >> 12) % 6u;
                 if (act == 0u) {
-                    static const uint8_t WARM_CARTS[5] = {0, 1, 2, 3, 9}; /* SHIMMER, ECHO, BLACKHOLE, GRANULAR, CHOR+PITCH */
-                    S.cart_type = warm_guard
-                        ? WARM_CARTS[(r >> 16) % 5u]
-                        : (uint8_t)((r >> 16) % ((S.evolve == 3u) ? 11u : 7u));
+                    /* Smoothly bloom in a fresh FX cartridge (0 -> ON -> random ramp) */
+                    static const uint8_t WARM_CARTS[6] = {0, 1, 2, 3, 9, 15};
+                    unsigned pool = warm_guard ? 6u : HL_NCART;
+                    unsigned start = (r >> 16) % pool, tries;
+                    for (tries = 0; tries < pool; tries++) {
+                        unsigned c = warm_guard ? WARM_CARTS[(start + tries) % 6u] : ((start + tries) % HL_NCART);
+                        if (!(S.cart_mask & (uint16_t)(1u << c)) && D.ev_cfade_dir[c] == 0u) {
+                            float max_pct = 0.30f + (float)((r >> 8) % (warm_guard ? 35u : 60u)) * 0.01f;
+                            float dur_s   = (S.evolve == 1u ? 7.0f : S.evolve == 2u ? 4.5f : 3.0f) + (float)((r >> 20) % 9u);
+                            S.cart_lvl[c]     = 0.0f;
+                            S.cart_param[c]   = 0.18f + (float)((r >> 24) % 66u) * 0.01f;
+                            S.cart_mask      |= (uint16_t)(1u << c);
+                            S.cart_type       = (uint8_t)c;
+                            D.ev_cfade_tgt[c] = max_pct;
+                            D.ev_cfade_rate[c]= max_pct / dur_s;
+                            D.ev_cfade_dir[c] = 1u;
+                            break;
+                        }
+                    }
                 } else if (act == 1u) {
                     if (!warm_guard) hl_apply_pin_preset((uint8_t)((r >> 16) % 5u));
                 } else if (act == 2u && !S.ext_clk_lock) {
                     int nb = (int)S.bpm + (((r >> 16) & 1u) ? +3 : -3);
-                    int lo = warm_guard ? 48 : 42, hi = warm_guard ? 78 : 128;
+                    int lo = warm_guard ? 48 : 42, hi = warm_guard ? 78 : (S.evolve == 3u ? 180 : 128);
                     if (nb < lo) nb = lo;
                     if (nb > hi) nb = hi;
                     S.bpm = (uint8_t)nb;
+                } else if (act == 3u) {
+                    /* Melodic octave shift (-1..+1) & occasional audio-rate LFO burst in WILD */
+                    unsigned mi = (r >> 16) & 1u;
+                    static const int8_t MOCTS[3] = {-1, 0, 1};
+                    S.mel[mi].octave = MOCTS[(r >> 18) % 3u];
+                    if (!warm_guard && S.evolve == 3u) {
+                        S.lfo_fast = (uint8_t)(((r >> 22) % 4u) == 0u ? 1u : 0u);
+                    }
+                } else if (act == 4u) {
+                    /* Tuning / Chord Memory color shift */
+                    if (!warm_guard && S.evolve >= 2u) {
+                        S.tuning     = (uint8_t)((r >> 16) % 3u); /* 12-TET, JUST INT, PYTHAG */
+                        S.chord_mode = (uint8_t)((r >> 20) % 5u);
+                    }
                 } else if (S.perf_mode == HL_PERF_GEN) {
                     static const uint8_t WARM_SC[3] = {6, 2, 0}; /* MAJOR, DORIAN, MINOR — never tritone/horror! */
                     S.scale = warm_guard ? WARM_SC[(r >> 16) % 3u] : (uint8_t)((r >> 16) % 7u);

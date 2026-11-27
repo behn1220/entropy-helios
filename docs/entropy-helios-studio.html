@@ -694,7 +694,7 @@ body{
   <div class="brand-block">
     <div class="crt-badge" title="Live Helios CRT Monitor"><canvas id="hdrScope" width="144" height="84"></canvas></div>
     <div>
-      <h1 class="title-main">ENTROPY HELIOS <span style="font-size:12px;opacity:.75;">v1.3.3</span></h1>
+      <h1 class="title-main">ENTROPY HELIOS <span style="font-size:12px;opacity:.75;">v1.3.4</span></h1>
       <div class="title-sub">DUAL-CORE HARDWARE STUDIO • 16-CART STACK FX • 3-BAND PARAM EQ • OPTICAL &amp; PIEZO SENSORS</div>
     </div>
   </div>
@@ -1100,16 +1100,61 @@ function resetCpuUI(){
   val.textContent="--%"; val.style.color="var(--well-green)";
   box.title="Live FM-1 Dual-Core CPU Load (connect FM-1 to monitor)";
 }
+let midiBurstUntilMs=0, midiBurstTotal=0, fwBatchCap=false;
+const MIDI_TX_CHUNK=2, MIDI_TX_PACE_MS=16, MIDI_BATCH_MAX=180;
+function isBatchableSx(msg){
+  return msg && msg.length>=7 && msg.length<=29 && msg[0]===0xF0 && msg[1]===0x7D && msg[2]===0x48 && msg[3]===0x4C && msg[4]!==0x0E && msg[msg.length-1]===0xF7;
+}
+function updateTxBusyUI(){
+  const b=document.getElementById("btnRndAll");
+  if(!b) return;
+  if(midiTxQueue.length>0 && midiBurstTotal>4){
+    const pct=Math.min(99,Math.round(((midiBurstTotal-midiTxQueue.length)/midiBurstTotal)*100));
+    b.textContent=`SYNC ${pct}%`;
+    b.classList.add("lit");
+  } else if(b.textContent!=="RND"){
+    b.textContent="RND";
+    b.classList.remove("lit");
+    midiBurstTotal=0;
+  }
+}
 function drainMidiOut(){
   midiTxScheduled=false;
-  if(!midiOut){ midiTxQueue.length=0; return; }
-  if(midiTxQueue.length) blinkMidiLed("tx");
-  for(let i=0;i<midiTxQueue.length;i++) midiOut.send(midiTxQueue[i]);
-  midiTxQueue.length=0;
+  if(!midiOut){ midiTxQueue.length=0; updateTxBusyUI(); return; }
+  if(!midiTxQueue.length){ updateTxBusyUI(); return; }
+  blinkMidiLed("tx");
+  if(fwBatchCap && midiTxQueue.length>1 && isBatchableSx(midiTxQueue[0])){
+    /* Pack ~40 sub-commands into a single 0x0E Batch SysEx frame (1 WinMM call instead of 40!) */
+    const batch=[0xF0,0x7D,0x48,0x4C,0x0E];
+    let taken=0;
+    while(taken<midiTxQueue.length && isBatchableSx(midiTxQueue[taken])){
+      const m=midiTxQueue[taken], plen=m.length-5; /* bytes between 4C and F7 */
+      if(batch.length+1+plen+1>MIDI_BATCH_MAX) break;
+      batch.push(plen);
+      for(let j=4;j<m.length-1;j++) batch.push(m[j]);
+      taken++;
+    }
+    batch.push(0xF7);
+    midiOut.send(batch);
+    midiTxQueue.splice(0,taken);
+  } else {
+    /* Non-batch fallback (CCs or v1.3.3 firmware): send small slices so WinMM never blocks Chrome UI */
+    const n=Math.min(MIDI_TX_CHUNK,midiTxQueue.length);
+    for(let i=0;i<n;i++) midiOut.send(midiTxQueue[i]);
+    midiTxQueue.splice(0,n);
+  }
+  updateTxBusyUI();
+  if(midiTxQueue.length){
+    midiBurstUntilMs=performance.now()+350;
+    midiTxScheduled=true;
+    setTimeout(drainMidiOut,MIDI_TX_PACE_MS);
+  }
 }
 function queueMidiBytes(bytes){
   if(!midiOut) return;
   midiTxQueue.push(bytes);
+  if(midiTxQueue.length>midiBurstTotal) midiBurstTotal=midiTxQueue.length;
+  if(midiTxQueue.length>4) midiBurstUntilMs=performance.now()+350;
   if(!midiTxScheduled){ midiTxScheduled=true; setTimeout(drainMidiOut,0); }
 }
 function sx(bytes){ queueMidiBytes([0xF0,0x7D,0x48,0x4C,...bytes,0xF7]); }
@@ -1558,7 +1603,7 @@ function renderModeUI(){
   document.getElementById("btnModeEnt").className="mode-opt"+(!pureMode?" active-ent":"");
   document.getElementById("btnModePure").className="mode-opt"+(pureMode?" active-pure":"");
   document.getElementById("rowPatch").style.display=pureMode?"none":"flex";
-  document.getElementById("rowEvo").style.display=pureMode?"none":"flex";
+  document.getElementById("rowEvo").style.display="flex";
   document.getElementById("slots").style.display=pureMode?"none":"grid";
   document.getElementById("pureSlots").style.display=pureMode?"grid":"none";
   document.getElementById("bankHdr").textContent=pureMode?"Pure HW INIT Flash Bank (H01..H16)":"Entropy User Flash Bank (E01..E08)";
@@ -1885,7 +1930,7 @@ function rndGlobal(){
   setRndSel(31,Math.random()<0.45?0:ri(1,5));
   setRndSel(20,Math.random()<0.55?0:ri(1,4));
   setRndSel(21,Math.random()<0.5?0:ri(1,5));
-  if(!pureMode) setRndSel(25,ri(0,3));
+  setRndSel(25,ri(0,3));
   lfoFast=Math.random()<0.2?1:0;
   setParam(27,lfoFast);
   const bl=document.getElementById("btnLfoSpd");
@@ -2039,6 +2084,7 @@ function rndEq(){
 }
 
 document.getElementById("btnRndAll").onclick=()=>{
+  midiTxQueue.length=0;
   pushRndUndo("ALL MODULES");
   rndGlobal(); rndFx(); rndBus(); rndDrones(); rndMel(); rndVcf(); rndXy(); rndMatrix(); rndEq();
 };
@@ -2052,6 +2098,7 @@ document.getElementById("btnRndMat").onclick=()=>{ pushRndUndo("CV Pin Matrix");
 document.getElementById("btnRndEq").onclick=()=>{ pushRndUndo("Parametric EQ"); rndEq(); };
 document.getElementById("btnRndUndo").onclick=()=>{
   if(!rndUndoStack.length) return;
+  midiTxQueue.length=0;
   restoreRndSnapshot(rndUndoStack.pop());
   updateRndUndoBtn();
 };
@@ -2399,8 +2446,10 @@ function onMidiMsg(ev){
     updateCpuUI(d[5],d[6],d[7]);
     return;
   }
+  if((d[4]===0x11 || d[4]===0x12) && (midiTxQueue.length>0 || performance.now()<midiBurstUntilMs)) return;
   if(d[4]===0x11 && d.length>=97){
     paramSent.fill(-1);
+    fwBatchCap=!!((d[7]>>3)&1);
     pureMode=(d[7]>>4)&1;
     playing=(d[7]>>5)&1;
     lfoFast=(d[7]>>6)&1;

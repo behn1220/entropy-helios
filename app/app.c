@@ -268,7 +268,7 @@ static void hl_apply_save(const hl_save_t *sv)
     else               helios_load_patch(sv->patch % HL_NPATCHES);
     helios_get_state(&st);
     st.pure_mode     = sv->pure_mode & 1u;
-    st.evolve        = st.pure_mode ? 0u : (sv->evolve & 3u);
+    st.evolve        = sv->evolve & 3u;
     st.root          = sv->root % 12u;
     st.scale         = sv->scale % 7u;
     st.bpm           = sv->bpm < 30u ? 30u : sv->bpm > 240u ? 240u : sv->bpm;
@@ -405,7 +405,6 @@ static void hl_save_pure_slot(unsigned h_idx)
     bk->used[sub] = 1u;
     hl_make_save(&bk->slot[sub]);
     bk->slot[sub].pure_mode = 1u;
-    bk->slot[sub].evolve    = 0u;
     cur_pure_idx = (uint8_t)h_idx;
     plat_store_save(obj, bk, sizeof(*bk));
 }
@@ -594,7 +593,7 @@ static __attribute__((noinline)) void hl_sysex_send_state(void)
     f[p++] = 0xF0u; f[p++] = 0x7Du; f[p++] = 0x48u; f[p++] = 0x4Cu; f[p++] = 0x11u;
     f[p++] = ui_pure_mode ? (cur_pure_idx & 0x7Fu) : (cur_slot_idx & 0x7Fu);
     f[p++] = st.perf_mode & 0x7Fu;
-    f[p++] = (uint8_t)((st.evolve & 3u) | ((ui_pure_mode & 1u) << 4) | ((st.playing & 1u) << 5) | ((st.lfo_fast & 1u) << 6));
+    f[p++] = (uint8_t)((st.evolve & 3u) | (1u << 3) | ((ui_pure_mode & 1u) << 4) | ((st.playing & 1u) << 5) | ((st.lfo_fast & 1u) << 6));
     f[p++] = st.arp_mode & 0x7Fu;
     f[p++] = st.cart_type & 0x7Fu;
     f[p++] = (uint8_t)((st.cart_freeze & 1u) | ((st.key_mode & 3u) << 1) | ((ui_theme & 7u) << 3));
@@ -730,20 +729,9 @@ static void hl_sysex_send_cpu(void)
     plat_sysex_send(f, 9u);
 }
 
-int app_sysex(const uint8_t *p, uint32_t n)
+static __attribute__((noinline)) int hl_sysex_exec(const uint8_t *p, uint32_t n)
 {
     static helios_state_t st;
-    /* fm1-base strips F0..F7 before calling app_sysex (p[0] = 0x7D); also tolerate raw F0..F7 frames */
-    if (p && n >= 2u && p[0] == 0xF0u) {
-        p++; n--;
-        if (n > 0u && p[n - 1u] == 0xF7u) n--;
-    }
-    if (!p || n < 4u || p[0] != 0x7Du || p[1] != 0x48u || p[2] != 0x4Cu)
-        return 0;
-    ui_studio_linked = 1u;
-#ifdef PLAT_TICKS_PER_US
-    ui_usb_sess_last = plat_usb_session();
-#endif
     {
         uint8_t cmd = p[3];
         if (cmd == 0x01u) {
@@ -1005,6 +993,37 @@ int app_sysex(const uint8_t *p, uint32_t n)
         }
     }
     return 0;
+}
+
+int app_sysex(const uint8_t *p, uint32_t n)
+{
+    /* fm1-base strips F0..F7 before calling app_sysex (p[0] = 0x7D); also tolerate raw F0..F7 frames */
+    if (p && n >= 2u && p[0] == 0xF0u) {
+        p++; n--;
+        if (n > 0u && p[n - 1u] == 0xF7u) n--;
+    }
+    if (!p || n < 4u || p[0] != 0x7Du || p[1] != 0x48u || p[2] != 0x4Cu)
+        return 0;
+    ui_studio_linked = 1u;
+#ifdef PLAT_TICKS_PER_US
+    ui_usb_sess_last = plat_usb_session();
+#endif
+    if (p[3] == 0x0Eu) {
+        /* Batch Command Frame: [len1, subcmd1...] [len2, subcmd2...] (packs ~40 updates into 1 USB SysEx!) */
+        static uint8_t sub[28];
+        uint32_t pos = 4u;
+        sub[0] = 0x7Du; sub[1] = 0x48u; sub[2] = 0x4Cu;
+        while (pos < n) {
+            uint32_t slen = p[pos++];
+            uint32_t i;
+            if (slen == 0u || slen > 24u || pos + slen > n) break;
+            for (i = 0u; i < slen; i++) sub[3u + i] = p[pos + i];
+            hl_sysex_exec(sub, 3u + slen);
+            pos += slen;
+        }
+        return 1;
+    }
+    return hl_sysex_exec(p, n);
 }
 
 /* ---- USB / TRS MIDI Input Handler (Clock Sync, Full Expression, Studio CC Map) ---- */
@@ -2770,10 +2789,15 @@ static void hl_paint_band0(const helios_state_t *st)
     cv_rect(92, 3, 66, 12, RGB(14, 24, 20));
     cv_text(95, 3, &FONT_T, buf, C42_GREEN);
 
-    /* Operating Mode & Evolve Pill (Unmistakable PURE HW vs ENTROPY badging!) */
+    /* Operating Mode & Evolve Pill (Unmistakable PURE HW vs ENTROPY badging, with live Evolve in BOTH modes!) */
     buf[0] = 0;
     if (ui_pure_mode) {
-        hl_cat(buf, "PURE HW");
+        if (st->evolve > 0u) {
+            hl_cat(buf, "PUR:");
+            hl_cat(buf, helios_evolve_name(st->evolve));
+        } else {
+            hl_cat(buf, "PURE HW");
+        }
     } else if (st->perf_mode == HL_PERF_GEN) {
         hl_cat(buf, "ENT:");
         hl_cat(buf, helios_evolve_name(st->evolve));
@@ -3477,7 +3501,7 @@ static __attribute__((noinline)) void hl_update_lights(void)
     helios_get_state(&st);
     b |= 1u << PG_BTN_OF[ui_page % PG_COUNT];
     if (st.playing) b |= LED_PLAY_GREEN;
-    if (!ui_pure_mode && (st.perf_mode != HL_PERF_GEN || st.evolve > 0u)) b |= 1u << B_REC;
+    if (st.perf_mode != HL_PERF_GEN || st.evolve > 0u) b |= 1u << B_REC;
     if (st.arp_mode > 0u) b |= 1u << B_ARP;
     if (ui_sel_alt) b |= 1u << B_SEL;
 

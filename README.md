@@ -1,8 +1,8 @@
-# ENTROPY HELIOS (v1.3.3 Beta)
+# ENTROPY HELIOS (v1.3.4 Beta)
 
 **Standalone Dual-Core 8-Voice Ambient Drone & Microtonal Synthesizer for the M-VAVE FM-1**
 
-> **[Launch WebMIDI Hardware Studio](https://behn1220.github.io/entropy-helios/entropy-helios-studio.html)** &nbsp;•&nbsp; **[Flash FM-1 via Browser (v1.3.3)](https://behn1220.github.io/entropy-helios/entropy-helios-1.3.3.html)** &nbsp;•&nbsp; **[Interactive Website](https://behn1220.github.io/entropy-helios/)** &nbsp;•&nbsp; **[Full Hardware Manual](docs/ENTROPY-HELIOS-MANUAL.md)**
+> **[Launch WebMIDI Hardware Studio](https://behn1220.github.io/entropy-helios/entropy-helios-studio.html)** &nbsp;•&nbsp; **[Flash FM-1 via Browser (v1.3.4)](https://behn1220.github.io/entropy-helios/entropy-helios-1.3.4.html)** &nbsp;•&nbsp; **[Interactive Website](https://behn1220.github.io/entropy-helios/)** &nbsp;•&nbsp; **[Full Hardware Manual](docs/ENTROPY-HELIOS-MANUAL.md)**
 
 ---
 
@@ -65,14 +65,14 @@ Captured directly from Entropy Helios v1.2 firmware — every module button smoo
 
 ## Hardware Compatibility (Both FM-1 Flash Chipsets Supported)
 
-Entropy Helios v1.3.3 Beta supports **both M-VAVE FM-1 hardware revisions** out of the box—including full browser OTA flashing and permanent flash saves (`H01–H16` Pure HW slots, `E01–E08` Entropy user slots & chassis/global settings):
+Entropy Helios v1.3.4 Beta supports **both M-VAVE FM-1 hardware revisions** out of the box—including full browser OTA flashing and permanent flash saves (`H01–H16` Pure HW slots, `E01–E08` Entropy user slots & chassis/global settings):
 
 - **Puya P25Q80** (`JEDEC 85 60 14`, 1 MiB) — original stock FM-1 units
 - **UC25HQ80** (`JEDEC B3 60 14`, 1 MiB) — newer FM-1 units (autumn 2026+ / AliExpress)
 
 ## Quick Start (Flash via Browser)
 
-1. Open the **[v1.3.3 WebMIDI Flasher](https://behn1220.github.io/entropy-helios/entropy-helios-1.3.3.html)** (or `docs/entropy-helios-1.3.3.html` locally) in **Chrome** or **Edge**.
+1. Open the **[v1.3.4 WebMIDI Flasher](https://behn1220.github.io/entropy-helios/entropy-helios-1.3.4.html)** (or `docs/entropy-helios-1.3.4.html` locally) in **Chrome** or **Edge**.
 2. Connect your **M-VAVE FM-1** via USB-C and click **Install**.
 3. Open the **[Entropy Helios WebMIDI Studio](https://behn1220.github.io/entropy-helios/entropy-helios-studio.html)** for live two-way control, patch backup, and optical/piezo sensors.
 4. See [ENTROPY-HELIOS-MANUAL.md](docs/ENTROPY-HELIOS-MANUAL.md) for the complete control reference.
