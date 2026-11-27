@@ -1085,6 +1085,11 @@ function blinkMidiLed(which){
   if(which==="tx"){ clearTimeout(txLedTm); txLedTm=setTimeout(()=>el.classList.remove(cls),90); }
   else { clearTimeout(rxLedTm); rxLedTm=setTimeout(()=>el.classList.remove(cls),90); }
 }
+function cpuColorForPct(pct,ovl){
+  if(ovl>0) return "#ff4b3e";
+  const hue=Math.round(142-(pct/100)*122); /* 0% = 142 (green) -> 50% = 81 (yellow-green) -> 100% = 20 (vivid orange) */
+  return `hsl(${hue}, 86%, 58%)`;
+}
 function updateCpuUI(c0,c1,ovl){
   const f0=document.getElementById("cpuFill0"), v0=document.getElementById("cpuVal0");
   const f1=document.getElementById("cpuFill1"), v1=document.getElementById("cpuVal1");
@@ -1092,8 +1097,8 @@ function updateCpuUI(c0,c1,ovl){
   if(!f0||!v0||!f1||!v1||!box) return;
   const p0=Math.max(0,Math.min(100,Math.round(c0)));
   const p1=Math.max(0,Math.min(100,Math.round(c1)));
-  const col0=(ovl>0||p0>=88)?"#ff554b":p0>=70?"#ebb949":"#52e88b";
-  const col1=(ovl>0||p1>=88)?"#ff554b":p1>=70?"#ebb949":"#49d8eb";
+  const col0=cpuColorForPct(p0,ovl);
+  const col1=cpuColorForPct(p1,ovl);
   f0.style.width=p0+"%"; f0.style.background=col0;
   v0.textContent=p0+"%"; v0.style.color=col0;
   f1.style.width=p1+"%"; f1.style.background=col1;
@@ -1107,8 +1112,8 @@ function resetCpuUI(){
   if(!f0||!v0||!f1||!v1||!box) return;
   f0.style.width="0%"; f0.style.background="#52e88b";
   v0.textContent="--%"; v0.style.color="var(--well-green)";
-  f1.style.width="0%"; f1.style.background="#49d8eb";
-  v1.textContent="--%"; v1.style.color="var(--well-cyan)";
+  f1.style.width="0%"; f1.style.background="#52e88b";
+  v1.textContent="--%"; v1.style.color="var(--well-green)";
   box.title="Live FM-1 Dual-Core CPU Load (connect FM-1 to monitor)";
 }
 let midiBurstUntilMs=0, midiBurstTotal=0, fwBatchCap=false;
