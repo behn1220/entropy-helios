@@ -467,10 +467,10 @@ static void hl_set_mode(uint8_t pure)
     }
 }
 
-static void hl_save_tick(uint32_t now)
+static __attribute__((noinline)) void hl_save_tick(uint32_t now)
 {
-    hl_save_t sv;
-    helios_state_t st;
+    static hl_save_t sv;
+    static helios_state_t st;
     uint32_t sig;
     helios_get_state(&st);
     hl_make_save(&sv);
@@ -582,10 +582,10 @@ static uint8_t hl_q7(float x)
     return (uint8_t)(v < 0 ? 0 : v > 127 ? 127 : v);
 }
 
-static void hl_sysex_send_state(void)
+static __attribute__((noinline)) void hl_sysex_send_state(void)
 {
-    helios_state_t st;
-    uint8_t f[128];
+    static helios_state_t st;
+    static uint8_t f[128];
     static uint8_t e[192];
     uint32_t p = 0u, q = 0u, r, c;
     helios_get_state(&st);
@@ -732,7 +732,7 @@ static void hl_sysex_send_cpu(void)
 
 int app_sysex(const uint8_t *p, uint32_t n)
 {
-    helios_state_t st;
+    static helios_state_t st;
     /* fm1-base strips F0..F7 before calling app_sysex (p[0] = 0x7D); also tolerate raw F0..F7 frames */
     if (p && n >= 2u && p[0] == 0xF0u) {
         p++; n--;
@@ -1008,14 +1008,14 @@ int app_sysex(const uint8_t *p, uint32_t n)
 }
 
 /* ---- USB / TRS MIDI Input Handler (Clock Sync, Full Expression, Studio CC Map) ---- */
-static void hl_handle_midi(uint32_t pkt)
+static __attribute__((noinline)) void hl_handle_midi(uint32_t pkt)
 {
     uint8_t st_b = (uint8_t)((pkt >> 8) & 0xFFu);
     uint8_t d1   = (uint8_t)((pkt >> 16) & 0x7Fu);
     uint8_t d2   = (uint8_t)((pkt >> 24) & 0x7Fu);
     uint8_t cmd  = st_b & 0xF0u;
     uint8_t ch   = st_b & 0x0Fu;
-    helios_state_t st;
+    static helios_state_t st;
 
     /* System Real-Time MIDI Clock Sync (0xF8 Clock, 0xFA Start, 0xFB Continue, 0xFC Stop) */
     if (st_b == 0xF8u) { helios_midi_clock(plat_ms()); return; }
@@ -1764,9 +1764,9 @@ static void hl_knob_info(const helios_state_t *st, unsigned page, unsigned knob,
     }
 }
 
-static void hl_turn_knob(unsigned page, unsigned knob, int32_t d)
+static __attribute__((noinline)) void hl_turn_knob(unsigned page, unsigned knob, int32_t d)
 {
-    helios_state_t st;
+    static helios_state_t st;
     float step = (float)d * 0.04f;
     uint32_t i;
     char lbl[16], val[20];
@@ -3378,9 +3378,9 @@ static void hl_paint_boot_splash(int32_t by, uint32_t now)
     hl_stext(102, 218, by, &FONT_T, "V1.0 BETA", th->text_pri);
 }
 
-static void hl_paint_screen(uint32_t now)
+static __attribute__((noinline)) void hl_paint_screen(uint32_t now)
 {
-    helios_state_t st;
+    static helios_state_t st;
     int32_t by;
     if (ui_splash_end && (int32_t)(ui_splash_end - now) > 0) {
         for (by = 0; by < 240; by += 48) {
@@ -3436,10 +3436,10 @@ void app_ui_init(void)
 
 /* ---- Screen Reader Announcement (fm1-base announce.c) ---- */
 static char hl_said_last[256];
-static void hl_announce(uint32_t now)
+static __attribute__((noinline)) void hl_announce(uint32_t now)
 {
-    char t[256];
-    helios_state_t st;
+    static char t[256];
+    static helios_state_t st;
     unsigned i;
     if (!ann_on()) {
         hl_said_last[0] = 0;
@@ -3468,10 +3468,10 @@ static void hl_announce(uint32_t now)
 }
 
 /* ---- Physical FM-1 Button & Capacitive Key LEDs ---- */
-static void hl_update_lights(void)
+static __attribute__((noinline)) void hl_update_lights(void)
 {
     static uint32_t last_b = 0xFFFFFFFFu, last_k = 0xFFFFFFFFu, last_dk = 0xFFFFFFFFu;
-    helios_state_t st;
+    static helios_state_t st;
     uint32_t b = 0u, keys = 0u, dkeys = 0u, k;
 
     helios_get_state(&st);
@@ -3522,6 +3522,7 @@ void app_input_only(void)
 
 void app_frame(void)
 {
+    static helios_state_t st;
     uint32_t now = plat_ms();
     uint32_t buttons = plat_buttons(), pressed = buttons & ~prev_buttons;
     uint32_t keys, newk, relk, k;
@@ -3545,7 +3546,6 @@ void app_frame(void)
             float prs = (float)touch_pressure(k) * (1.0f / 127.0f);
             /* Live Keyboard Step-Entry Recording when on PG_SEQ_L or PG_SEQ_R! */
             if ((ui_page == PG_SEQ_L || ui_page == PG_SEQ_R) && k < 24u) {
-                helios_state_t st;
                 unsigned mi = (ui_page == PG_SEQ_R) ? 1u : 0u;
                 unsigned si = (mi == 0u ? ui_sel_step_l : ui_sel_step_r) % HL_NSTEPS;
                 char s_lbl[16], s_val[16];
@@ -3595,7 +3595,6 @@ void app_frame(void)
         ui_sysex_dirty = 1u;
     }
     if (pressed & (1u << B_PLAY)) {
-        helios_state_t st;
         if (ui_sel_alt) {
             helios_toggle_sustain_latch();
             helios_get_state(&st);
@@ -3607,7 +3606,6 @@ void app_frame(void)
         }
     }
     if (pressed & (1u << B_REC)) {
-        helios_state_t st;
         if (ui_page == PG_CART && !ui_sel_alt) {
             /* One-click Solo / Clear Stack on FX CART: keeps only currently selected cartridge ON! */
             helios_get_state(&st);
@@ -3639,7 +3637,6 @@ void app_frame(void)
     }
     if (pressed & (1u << B_ARP)) {
         if (ui_sel_alt) {
-            helios_state_t st;
             helios_cycle_arp_mode();
             helios_get_state(&st);
             app_say("ARPEGGIATOR", helios_arpmode_name(st.arp_mode));
@@ -3744,7 +3741,6 @@ void app_frame(void)
                         hl_load_pure_slot(cur_pure_idx);
                         app_say("PURE RESET", hl_pure_slot_used(cur_pure_idx) ? "SAVED PATCH" : "INIT PANEL");
                     } else {
-                        helios_state_t st;
                         hl_load_slot(cur_slot_idx);
                         helios_get_state(&st);
                         app_say("PATCH RESET", cur_slot_idx >= HL_NPATCHES ? "ENTROPY SLOT" : helios_patch_name(st.patch));
@@ -3760,7 +3756,6 @@ void app_frame(void)
     /* OCT- / OCT+ step voices/steps on EDIT/SEQ pages, shift Keyboard Octave in HYBRID/PLAY mode, or step pages */
     if (pressed & ((1u << B_OCTDN) | (1u << B_OCTUP))) {
         int dir = (pressed & (1u << B_OCTUP)) ? 1 : -1;
-        helios_state_t st;
         helios_get_state(&st);
         if (ui_page == PG_DRN_1_3) {
             ui_sel_drone_l = (uint8_t)(((int)ui_sel_drone_l + 3 + dir) % 3);
@@ -3788,7 +3783,6 @@ void app_frame(void)
     if (d) {
         ui_sysex_dirty = 1u;
         if (ui_sel_alt) {
-            helios_state_t st;
             helios_get_state(&st);
             st.cart_type = (uint8_t)(((int)st.cart_type + (int)HL_NCART * 16 + (int)d) % (int)HL_NCART);
             helios_set_state(&st);
@@ -3811,7 +3805,6 @@ void app_frame(void)
                 hl_cat_u(ub, (unsigned)(cur_slot_idx - HL_NPATCHES + 1u));
                 app_say("ENTROPY SLOT", ub);
             } else {
-                helios_state_t st;
                 helios_get_state(&st);
                 app_say("PATCH", helios_patch_name(st.patch));
             }
@@ -3834,7 +3827,6 @@ void app_frame(void)
             ui_pin_r = (uint8_t)(idx >> 3);
             ui_pin_c = (uint8_t)(idx & 7u);
         } else {
-            helios_state_t st;
             helios_get_state(&st);
             helios_set_evolve((uint8_t)(((int)st.evolve + 40 + dir) & 3));
             helios_get_state(&st);
@@ -3845,7 +3837,6 @@ void app_frame(void)
 
     d = plat_enc(EN_ALGO);
     if (d) {
-        helios_state_t st;
         int dir = (int)d;
         ui_sysex_dirty = 1u;
         helios_get_state(&st);

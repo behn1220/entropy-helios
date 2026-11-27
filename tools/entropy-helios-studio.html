@@ -694,7 +694,7 @@ body{
   <div class="brand-block">
     <div class="crt-badge" title="Live Helios CRT Monitor"><canvas id="hdrScope" width="144" height="84"></canvas></div>
     <div>
-      <h1 class="title-main">ENTROPY HELIOS <span style="font-size:12px;opacity:.75;">v1.3.2</span></h1>
+      <h1 class="title-main">ENTROPY HELIOS <span style="font-size:12px;opacity:.75;">v1.3.3</span></h1>
       <div class="title-sub">DUAL-CORE HARDWARE STUDIO • 16-CART STACK FX • 3-BAND PARAM EQ • OPTICAL &amp; PIEZO SENSORS</div>
     </div>
   </div>
@@ -749,7 +749,8 @@ body{
     <div class="mod-hd">
       <div class="mod-title"><span class="mod-bar green"></span>Transport &amp; Global</div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;">
-        <button class="hw-btn sm mag" id="btnRndPatch" title="Musical Randomize (VCF, Spring, FX &amp; in-scale sequencer)">RND</button>
+        <button class="hw-btn sm mag" id="btnRndAll" title="Master Randomize: randomize ALL modules at once">RND</button>
+        <button class="hw-btn sm" id="btnRndUndo" disabled style="opacity:.45;" title="Undo last RND (from any module)">UNDO</button>
         <button class="hw-btn sm" id="btnResetSlot" title="Reset active preset/slot to clean baseline">Reset</button>
         <button class="hw-btn sm" id="btnMute" title="Quick Output Mute without stopping sequencers (M)"><span class="led-dot" id="muteLed"></span>MUTE</button>
         <button class="hw-btn sm lit" id="btnPlay" title="Start/Stop Engine (Space)"><span class="led-dot green" id="playLed"></span>PLAYING</button>
@@ -794,6 +795,7 @@ body{
     <div class="mod-hd">
       <div class="mod-title"><span class="mod-bar"></span>16 Stackable FX Cartridges</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="hw-btn sm mag" id="btnRndFx" title="Randomize FX stack (weighted: 1-4 common, 5-8 uncommon, 9-16 rare) + FX knobs">RND</button>
         <button class="hw-btn sm gold" id="btnSolo">SOLO</button>
         <button class="hw-btn sm mag" id="btnClear">CLEAR ALL</button>
         <button class="hw-btn sm cyan" id="btnFrz"><span class="led-dot" id="frzLed"></span>FREEZE</button>
@@ -809,6 +811,7 @@ body{
     <div class="mod-hd">
       <div class="mod-title"><span class="mod-bar blue"></span><span id="drnRackTitle">6-Drone Voice Rack (V1–V3 / V6–V8)</span></div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button class="hw-btn sm mag" id="btnRndDrn" title="Randomize all 6 Drone voices (notes, spread, morph, pan, levels)">RND</button>
         <button class="hw-btn sm" id="btnDrnHold"><span class="led-dot" id="drnHoldLed"></span>HOLD: MUTED</button>
         <button class="hw-btn sm" id="btnDrnSub">SUB: UNI</button>
         <button class="hw-btn sm cyan" id="btnDrnPan">PAN: BOTH</button>
@@ -823,6 +826,7 @@ body{
     <div class="mod-hd">
       <div class="mod-title"><span class="mod-bar green"></span>Melodic V4/V5 &amp; Dual 5-Step Sequencers</div>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <button class="hw-btn sm mag" id="btnRndMel" title="Randomize V4 &amp; V5 melodic voices and both 5-step sequencers">RND</button>
         <button class="hw-btn sm" id="btnSeqDrift" title="Toggle continuous Steve Reich style ~2.5% phase slip on selected sequencer"><span class="led-dot" id="seqDriftLed"></span>Drift</button>
         <button class="hw-btn sm cyan" id="btnSeqSync" title="Snap both V4 &amp; V5 sequencers back to Step 1 on the master beat grid">Sync 0&deg;</button>
         <div class="kbd-pills">
@@ -847,6 +851,7 @@ body{
     <div class="mod-hd">
       <div class="mod-title"><span class="mod-bar red"></span>Dual VCF &amp; 3-Spring</div>
       <div style="display:flex;gap:5px;">
+        <button class="hw-btn sm mag" id="btnRndVcf" title="Randomize Dual VCF &amp; 3-Spring Reverb">RND</button>
         <button class="hw-btn sm lit" id="btnVcfLnk">L/R LINK</button>
         <button class="hw-btn sm red" id="btnKick">KICK!</button>
       </div>
@@ -862,6 +867,9 @@ body{
     <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
     <div class="mod-hd">
       <div class="mod-title"><span class="mod-bar blue"></span>Drones Macro &amp; Master Bus</div>
+      <div style="display:flex;gap:5px;">
+        <button class="hw-btn sm mag" id="btnRndBus" title="Randomize Drones Macro &amp; Master Bus">RND</button>
+      </div>
     </div>
     <div class="knob-grid k4" id="knobsDrones" style="margin-top:auto;"></div>
   </section>
@@ -871,6 +879,7 @@ body{
     <div class="mod-hd">
       <div class="mod-title"><span class="mod-bar cyan"></span>2D Vector XY &amp; USB Audio</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button class="hw-btn sm mag" id="btnRndXy" title="Randomize 2D Vector XY position &amp; A/B Morph">RND</button>
         <button class="hw-btn sm cyan" id="btnJoyRec">Joy Loop</button>
         <button class="hw-btn sm gold" id="btnCapB">Cap B</button>
         <button class="hw-btn sm" id="btnCmpB" title="Compare Scene A vs Scene B">A/B Cmp</button>
@@ -907,6 +916,7 @@ body{
       <div class="mod-title"><span class="mod-bar cyan"></span>8&times;8 Modular CV Pin Matrix</div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="font-size:11px;color:var(--dim);"><b style="color:var(--gold)">+50</b> &rarr; <b style="color:var(--copper)">+100</b> &rarr; <b style="color:var(--cyan)">-75</b></span>
+        <button class="hw-btn sm mag" id="btnRndMat" title="Randomize 8x8 Modular CV Pin Matrix">RND</button>
         <button class="hw-btn sm cyan" id="btnMatTpl">Next Template</button>
       </div>
     </div>
@@ -968,6 +978,7 @@ body{
     <div class="mod-hd">
       <div class="mod-title"><span class="mod-bar cyan"></span>Master 3-Band Parametric EQ</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        <button class="hw-btn sm mag" id="btnRndEq" title="Randomize 3-Band Parametric Master EQ">RND</button>
         <button class="hw-btn sm green" id="btnEqOn"><span class="led-dot green" id="eqLed"></span>EQ: ON</button>
         <button class="hw-btn sm" id="btnEqFlat" title="Reset all EQ gains &amp; frequencies to flat 0 dB">Flat 0dB</button>
       </div>
@@ -1594,25 +1605,43 @@ applyTheme(loadThemeCookie(),false);
 
 /* 16 Stackable FX Cartridge Bay */
 const rackEl=document.getElementById("cartRack");
+const cartTiles=[];
+let lastCartEnableIdx=-1, lastCartEnableMs=0;
+CARTS.forEach((name,i)=>{
+  const d=document.createElement("div");
+  const led=document.createElement("span"); led.className="cled";
+  const num=document.createElement("span"); num.className="ctile-num"; num.textContent=(i+1<10?"0":"")+(i+1);
+  const txt=document.createElement("span"); txt.textContent=name;
+  d.append(led,num,txt);
+  d.onclick=()=>{
+    const wasOn=(cartMask&(1<<i))!==0;
+    cartSel=i;
+    if(!wasOn){
+      cartMask|=(1<<i);
+      lastCartEnableIdx=i; lastCartEnableMs=performance.now();
+      setCartSub(i,0,1);
+    } else {
+      setParam(6,i);
+    }
+    syncCartKnobs();
+    renderCartRack();
+  };
+  d.ondblclick=()=>{
+    if((cartMask&(1<<i))===0) return;
+    if(lastCartEnableIdx===i && (performance.now()-lastCartEnableMs)<450) return;
+    cartMask&=~(1<<i);
+    setCartSub(i,0,0);
+    syncCartKnobs();
+    renderCartRack();
+  };
+  rackEl.appendChild(d);
+  cartTiles.push(d);
+});
 function renderCartRack(){
-  rackEl.innerHTML="";
-  CARTS.forEach((name,i)=>{
-    const d=document.createElement("div");
+  cartTiles.forEach((d,i)=>{
     const on=(cartMask&(1<<i))!==0;
     d.className="ctile"+(on?" on":"")+(i===cartSel?" sel":"");
-    const led=document.createElement("span"); led.className="cled";
-    const num=document.createElement("span"); num.className="ctile-num"; num.textContent=(i+1<10?"0":"")+(i+1);
-    const txt=document.createElement("span"); txt.textContent=name;
-    d.append(led,num,txt);
-    d.onclick=()=>{
-      cartSel=i;
-      const nowOn=!(cartMask&(1<<i));
-      if(nowOn) cartMask|=(1<<i); else cartMask&=~(1<<i);
-      setCartSub(i,0,nowOn?1:0);
-      syncCartKnobs();
-      renderCartRack();
-    };
-    rackEl.appendChild(d);
+    d.title=on?"Click: edit Level/Tone • Double-click: turn OFF":"Click: enable & edit";
   });
 }
 function syncCartKnobs(){
@@ -1719,39 +1748,314 @@ document.getElementById("btnTap").onclick=()=>{
   }
 };
 
-/* Musical Patch Randomizer (VCF, Spring, FX, Chorus & in-scale V4/V5 sequencer steps) */
-document.getElementById("btnRndPatch").onclick=()=>{
-  const ri=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
-  const setK=(id,v)=>{ if(KNOBS[id]) KNOBS[id].setVal(v,true); else setParam(id,v); };
-  setK(0,ri(28,108));
-  setK(2,ri(12,72));
-  setK(3,ri(8,68));
-  setK(4,ri(18,76));
-  setK(5,ri(42,102));
-  setK(7,ri(48,106));
-  setK(8,ri(18,86));
-  setK(32,ri(55,112));
-  setK(33,ri(20,92));
-  setK(39,ri(12,72));
-  const ci=ri(0,11);
-  cartSel=ci;
-  cartMask=(1<<ci);
-  setParam(6,ci);
-  setParam(45,1);
+/* ===== Master RND + Per-Module RND + Multi-Level RND UNDO ===== */
+const RND_SEL_IDS=[20,21,25,29,30,31,35,40,49];
+const rndUndoStack=[];
+function updateRndUndoBtn(){
+  const b=document.getElementById("btnRndUndo");
+  if(!b) return;
+  const n=rndUndoStack.length;
+  b.disabled=(n===0);
+  b.style.opacity=n?"1":".45";
+  b.classList.toggle("gold",n>0);
+  b.title=n?`Undo last RND: ${rndUndoStack[n-1].label} (${n} step${n>1?"s":""} saved)`:"Undo last RND (from any module)";
+}
+function captureRndSnapshot(label){
+  const knobs={};
+  for(const k in KNOBS){
+    const id=parseInt(k,10);
+    if(id===70) continue; /* never undo/touch Master Vol */
+    knobs[id]=KNOBS[id].getVal();
+  }
+  const sels={};
+  RND_SEL_IDS.forEach(id=>{ const el=document.getElementById("p"+id); if(el) sels[id]=parseInt(el.value,10); });
+  return {
+    label,
+    knobs,
+    sels,
+    vcfLink, lfoFast, freeze, eqOn,
+    joyNormX, joyNormY,
+    cartMask, cartSel,
+    cartLvl:cartLvl.slice(),
+    cartTon:cartTon.slice(),
+    drnCfg:drnCfg.map(d=>({...d})),
+    melCfg:melCfg.map(m=>({...m, steps:m.steps.slice(), gates:m.gates.slice(), acc:m.acc.slice(), prob:m.prob.slice()})),
+    pinState:pinState.map(row=>row.slice())
+  };
+}
+function pushRndUndo(label){
+  rndUndoStack.push(captureRndSnapshot(label));
+  if(rndUndoStack.length>16) rndUndoStack.shift();
+  updateRndUndoBtn();
+}
+function restoreRndSnapshot(snap){
+  /* 1. Selects */
+  RND_SEL_IDS.forEach(id=>{
+    const el=document.getElementById("p"+id);
+    if(el && snap.sels[id]!==undefined && parseInt(el.value,10)!==snap.sels[id]){
+      el.value=String(snap.sels[id]);
+      setParam(id,snap.sels[id]);
+    }
+  });
+  /* 2. Toggles */
+  if(vcfLink!==snap.vcfLink){ setVcfLinkUI(snap.vcfLink); setParam(23,vcfLink); }
+  if(lfoFast!==snap.lfoFast){
+    lfoFast=snap.lfoFast; setParam(27,lfoFast);
+    const bl=document.getElementById("btnLfoSpd");
+    if(bl){ bl.textContent=lfoFast?"LFO: AUDIO":"LFO: SLOW"; bl.classList.toggle("lit-red",!!lfoFast); }
+  }
+  if(freeze!==snap.freeze){
+    freeze=snap.freeze; setParam(9,freeze);
+    document.getElementById("btnFrz").classList.toggle("lit",!!freeze);
+    document.getElementById("frzLed").className="led-dot"+(freeze?" cyan":"");
+  }
+  if(eqOn!==snap.eqOn){ eqOn=snap.eqOn; setParam(65,eqOn); }
+  /* 3. Knobs */
+  for(const k in snap.knobs){
+    const id=parseInt(k,10);
+    if(KNOBS[id] && KNOBS[id].getVal()!==snap.knobs[id]) KNOBS[id].setVal(snap.knobs[id],true);
+  }
+  syncEqBtn();
+  /* 4. Vector XY */
+  if(Math.abs(joyNormX-snap.joyNormX)>0.002 || Math.abs(joyNormY-snap.joyNormY)>0.002){
+    applyJoyNorm(snap.joyNormX,snap.joyNormY,true,true);
+  }
+  /* 5. 16 FX Cartridges (send only changed states/levels/tones) */
+  for(let i=0;i<16;i++){
+    const oldOn=(cartMask&(1<<i))!==0, newOn=(snap.cartMask&(1<<i))!==0;
+    if(oldOn!==newOn) setCartSub(i,0,newOn?1:0);
+    if(cartLvl[i]!==snap.cartLvl[i]){ cartLvl[i]=snap.cartLvl[i]; setCartSub(i,1,cartLvl[i]); }
+    if(cartTon[i]!==snap.cartTon[i]){ cartTon[i]=snap.cartTon[i]; setCartSub(i,2,cartTon[i]); }
+  }
+  cartMask=snap.cartMask; cartSel=snap.cartSel;
   renderCartRack(); syncCartKnobs();
+  /* 6. 6 Drones */
+  for(let i=0;i<6;i++){
+    const c=drnCfg[i], s=snap.drnCfg[i];
+    if(c.hold!==s.hold){ c.hold=s.hold; setDroneSub(i,0,c.hold); }
+    if(c.note!==s.note){ c.note=s.note; setDroneSub(i,1,c.note); }
+    if(c.spread!==s.spread){ c.spread=s.spread; setDroneSub(i,2,c.spread); }
+    if(c.level!==s.level){ c.level=s.level; setDroneSub(i,3,c.level); }
+    if(c.morph!==s.morph){ c.morph=s.morph; setDroneSub(i,4,c.morph); }
+    if(c.sub!==s.sub){ c.sub=s.sub; setDroneSub(i,5,c.sub); }
+    if(c.pan!==s.pan){ c.pan=s.pan; setDroneSub(i,6,c.pan); }
+    if(c.atk!==s.atk){ c.atk=s.atk; setDroneSub(i,7,c.atk); }
+    if(c.glide!==s.glide){ c.glide=s.glide; setDroneSub(i,8,c.glide); }
+  }
+  renderDroneBay(); syncDroneControls();
+  /* 7. Melodic V4/V5 & Dual Sequencers */
   for(let m=0;m<2;m++){
-    const mc=melCfg[m];
-    for(let s=0;s<5;s++){
-      mc.steps[s]=ri(0,11);
-      mc.gates[s]=(s===0||Math.random()>0.22)?1:0;
-      mc.acc[s]=(Math.random()<0.25)?1:0;
-      setSeqSub(m,s,0,mc.steps[s]);
-      setSeqSub(m,s,1,mc.gates[s]);
-      setSeqSub(m,s,3,mc.acc[s]);
+    const c=melCfg[m], s=snap.melCfg[m];
+    if(c.wave!==s.wave){ c.wave=s.wave; setMelSub(m,0,c.wave); }
+    if(c.lvl!==s.lvl){ c.lvl=s.lvl; setMelSub(m,1,c.lvl); }
+    if(c.glide!==s.glide){ c.glide=s.glide; setMelSub(m,2,c.glide); }
+    if(c.atk!==s.atk){ c.atk=s.atk; setMelSub(m,3,c.atk); }
+    if(c.rel!==s.rel){ c.rel=s.rel; setMelSub(m,4,c.rel); }
+    if(c.vib!==s.vib){ c.vib=s.vib; setMelSub(m,5,c.vib); }
+    if(c.oct!==s.oct){ c.oct=s.oct; setMelSub(m,6,c.oct); }
+    if(c.div!==s.div){ c.div=s.div; setSeqSub(m,0,4,c.div); }
+    if(c.len!==s.len){ c.len=s.len; setSeqSub(m,0,5,c.len); }
+    if(c.drift!==s.drift){ c.drift=s.drift; setSeqSub(m,0,7,c.drift); }
+    if(c.phase!==s.phase){ c.phase=s.phase; setParam(m?69:68,c.phase); }
+    for(let st=0;st<5;st++){
+      if(c.steps[st]!==s.steps[st]){ c.steps[st]=s.steps[st]; setSeqSub(m,st,0,c.steps[st]); }
+      if(c.gates[st]!==s.gates[st]){ c.gates[st]=s.gates[st]; setSeqSub(m,st,1,c.gates[st]); }
+      if(c.prob[st]!==s.prob[st]){ c.prob[st]=s.prob[st]; setSeqSub(m,st,2,c.prob[st]); }
+      if(c.acc[st]!==s.acc[st]){ c.acc[st]=s.acc[st]; setSeqSub(m,st,3,c.acc[st]); }
     }
   }
   syncMelUI();
+  /* 8. 8x8 Pin Matrix */
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    if(pinState[r][c]!==snap.pinState[r][c]){
+      pinState[r][c]=snap.pinState[r][c];
+      renderCell(r,c);
+      sx([0x02,r,c,pinState[r][c]]);
+    }
+  }
+}
+
+const ri=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
+const setRndK=(id,v)=>{ if(KNOBS[id]) KNOBS[id].setVal(v,true); else setParam(id,v); };
+const setRndSel=(id,v)=>{ const el=document.getElementById("p"+id); if(el){ el.value=String(v); setParam(id,v); } };
+
+function rndGlobal(){
+  setRndSel(29,ri(0,11));
+  setRndSel(30,ri(0,6));
+  setRndSel(31,Math.random()<0.45?0:ri(1,5));
+  setRndSel(20,Math.random()<0.55?0:ri(1,4));
+  setRndSel(21,Math.random()<0.5?0:ri(1,5));
+  if(!pureMode) setRndSel(25,ri(0,3));
+  lfoFast=Math.random()<0.2?1:0;
+  setParam(27,lfoFast);
+  const bl=document.getElementById("btnLfoSpd");
+  if(bl){ bl.textContent=lfoFast?"LFO: AUDIO":"LFO: SLOW"; bl.classList.toggle("lit-red",!!lfoFast); }
+  setRndK(28,ri(46,168));
+  if(typeof renderSeqStrip==="function") renderSeqStrip();
+}
+
+function rndFx(){
+  /* Weighted active FX count: 1-4 most common (70%), 5-8 uncommon (22%), 9-16 rare (8%) */
+  const roll=Math.random();
+  const cnt=roll<0.70?ri(1,4):roll<0.92?ri(5,8):ri(9,16);
+  const pool=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+  for(let i=pool.length-1;i>0;i--){ const j=ri(0,i); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const picked=new Set(pool.slice(0,cnt));
+  let nextMask=0;
+  for(let i=0;i<16;i++){
+    const on=picked.has(i);
+    if(on) nextMask|=(1<<i);
+    const wasOn=(cartMask&(1<<i))!==0;
+    if(on!==wasOn) setCartSub(i,0,on?1:0);
+    if(on){
+      cartLvl[i]=ri(48,118); cartTon[i]=ri(20,112);
+      setCartSub(i,1,cartLvl[i]); setCartSub(i,2,cartTon[i]);
+    }
+  }
+  cartMask=nextMask;
+  cartSel=pool[0];
+  setParam(6,cartSel);
+  setRndK(7,ri(42,108));
+  setRndK(32,ri(45,112));
+  setRndK(8,ri(12,92));
+  freeze=Math.random()<0.14?1:0;
+  setParam(9,freeze);
+  document.getElementById("btnFrz").classList.toggle("lit",!!freeze);
+  document.getElementById("frzLed").className="led-dot"+(freeze?" cyan":"");
+  renderCartRack(); syncCartKnobs();
+}
+
+function rndDrones(){
+  const rt=(parseInt(document.getElementById("p29")?.value||"0",10)||0)%12;
+  const sc=(parseInt(document.getElementById("p30")?.value||"0",10)||0)%7;
+  const semis=SCALE_SEMI[sc];
+  const heldTarget=ri(2,5);
+  const idx=[0,1,2,3,4,5];
+  for(let i=idx.length-1;i>0;i--){ const j=ri(0,i); [idx[i],idx[j]]=[idx[j],idx[i]]; }
+  const heldSet=new Set(idx.slice(0,heldTarget));
+  for(let i=0;i<6;i++){
+    const d=drnCfg[i];
+    const deg=semis[ri(0,6)];
+    const oct=ri(1,3)*12;
+    d.hold=heldSet.has(i)?1:0;
+    d.note=Math.max(0,Math.min(60,oct+rt+deg-12));
+    d.spread=ri(8,78);
+    d.level=ri(52,110);
+    d.morph=ri(0,127);
+    d.sub=Math.random()<0.35?1:0;
+    d.pan=i<3?(Math.random()<0.65?0:1):(Math.random()<0.65?2:1);
+    d.atk=ri(12,96);
+    d.glide=Math.random()<0.5?0:ri(10,80);
+    setDroneSub(i,0,d.hold); setDroneSub(i,1,d.note); setDroneSub(i,2,d.spread);
+    setDroneSub(i,3,d.level); setDroneSub(i,4,d.morph); setDroneSub(i,5,d.sub);
+    setDroneSub(i,6,d.pan); setDroneSub(i,7,d.atk); setDroneSub(i,8,d.glide);
+  }
+  renderDroneBay(); syncDroneControls();
+}
+
+function rndMel(){
+  for(let m=0;m<2;m++){
+    const mc=melCfg[m];
+    mc.wave=ri(0,5); mc.oct=ri(1,3);
+    mc.div=Math.random()<0.15?0:ri(1,7);
+    mc.len=ri(2,5);
+    mc.lvl=ri(64,116); mc.glide=Math.random()<0.45?0:ri(8,72);
+    mc.atk=ri(4,68); mc.rel=ri(28,108); mc.vib=Math.random()<0.55?0:ri(10,68);
+    mc.phase=Math.random()<0.4?0:ri(1,119);
+    mc.drift=Math.random()<0.25?1:0;
+    setMelSub(m,0,mc.wave); setMelSub(m,1,mc.lvl); setMelSub(m,2,mc.glide);
+    setMelSub(m,3,mc.atk); setMelSub(m,4,mc.rel); setMelSub(m,5,mc.vib); setMelSub(m,6,mc.oct);
+    setSeqSub(m,0,4,mc.div); setSeqSub(m,0,5,mc.len); setSeqSub(m,0,7,mc.drift);
+    setParam(m?69:68,mc.phase);
+    for(let s=0;s<5;s++){
+      mc.steps[s]=ri(0,11);
+      mc.gates[s]=(s===0||Math.random()>0.22)?1:0;
+      mc.acc[s]=(Math.random()<0.28)?1:0;
+      mc.prob[s]=Math.random()<0.65?10:ri(4,9);
+      setSeqSub(m,s,0,mc.steps[s]); setSeqSub(m,s,1,mc.gates[s]);
+      setSeqSub(m,s,2,mc.prob[s]); setSeqSub(m,s,3,mc.acc[s]);
+    }
+  }
+  syncMelUI();
+}
+
+function rndVcf(){
+  const lnk=Math.random()<0.65?1:0;
+  setVcfLinkUI(lnk); setParam(23,lnk);
+  const mL=ri(0,3), mR=lnk?mL:ri(0,3);
+  setRndSel(40,mL); setRndSel(49,mR);
+  const cL=ri(24,112), rL=ri(10,82);
+  setRndK(0,cL); setRndK(2,rL);
+  if(!lnk){ setRndK(1,ri(24,112)); setRndK(48,ri(10,82)); }
+  setRndK(3,ri(8,76));
+  setRndK(39,ri(8,84));
+  setRndK(4,ri(14,82));
+  setRndK(5,ri(38,108));
+}
+
+function rndBus(){
+  setRndK(41,ri(12,86));
+  setRndK(42,ri(16,96));
+  setRndK(43,ri(34,112));
+  setRndK(44,ri(68,116));
+  setRndK(36,Math.random()<0.45?0:ri(10,88));
+  setRndK(33,ri(14,98));
+  setRndK(37,ri(12,96));
+  setRndK(38,ri(24,104));
+  setRndK(15,Math.random()<0.55?0:ri(6,44));
+  setRndK(16,ri(42,88));
+  setRndK(17,ri(12,78));
+  setRndK(34,Math.random()<0.55?0:ri(4,36));
+}
+
+function rndXy(){
+  applyJoyNorm(Math.random()*0.84+0.08, Math.random()*0.84+0.08, true, true);
+  setRndK(12,Math.random()<0.4?0:ri(10,118));
+}
+
+function rndMatrix(){
+  const pins=ri(6,14);
+  const next=Array.from({length:8},()=>Array(8).fill(0));
+  for(let k=0;k<pins;k++){
+    const r=ri(0,7), c=ri(0,7);
+    next[r][c]=ri(1,3);
+  }
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    if(pinState[r][c]!==next[r][c]){
+      pinState[r][c]=next[r][c];
+      renderCell(r,c);
+      sx([0x02,r,c,pinState[r][c]]);
+    }
+  }
+}
+
+function rndEq(){
+  eqOn=1; setParam(65,1);
+  /* Musical +-7 dB range (26..101 on 0..127 -> -7..+7 dB) */
+  setRndK(58,ri(30,98)); setRndK(62,ri(15,105));
+  setRndK(59,ri(32,96)); setRndK(60,ri(20,108)); setRndK(63,ri(22,96));
+  setRndK(61,ri(30,98)); setRndK(64,ri(20,110));
+  syncEqBtn();
+}
+
+document.getElementById("btnRndAll").onclick=()=>{
+  pushRndUndo("ALL MODULES");
+  rndGlobal(); rndFx(); rndBus(); rndDrones(); rndMel(); rndVcf(); rndXy(); rndMatrix(); rndEq();
 };
+document.getElementById("btnRndFx").onclick=()=>{ pushRndUndo("FX Cartridges"); rndFx(); };
+document.getElementById("btnRndDrn").onclick=()=>{ pushRndUndo("6-Drone Rack"); rndDrones(); };
+document.getElementById("btnRndMel").onclick=()=>{ pushRndUndo("Melodic & Seq"); rndMel(); };
+document.getElementById("btnRndVcf").onclick=()=>{ pushRndUndo("Dual VCF & Spring"); rndVcf(); };
+document.getElementById("btnRndBus").onclick=()=>{ pushRndUndo("Drones Macro & Bus"); rndBus(); };
+document.getElementById("btnRndXy").onclick=()=>{ pushRndUndo("Vector XY"); rndXy(); };
+document.getElementById("btnRndMat").onclick=()=>{ pushRndUndo("CV Pin Matrix"); rndMatrix(); };
+document.getElementById("btnRndEq").onclick=()=>{ pushRndUndo("Parametric EQ"); rndEq(); };
+document.getElementById("btnRndUndo").onclick=()=>{
+  if(!rndUndoStack.length) return;
+  restoreRndSnapshot(rndUndoStack.pop());
+  updateRndUndoBtn();
+};
+updateRndUndoBtn();
 
 /* Basic Studio Keyboard Shortcuts (Space=Play/Stop, Esc=Panic, M=Quick Mute) */
 window.addEventListener("keydown",e=>{
